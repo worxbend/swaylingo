@@ -5,6 +5,6 @@ Description=Per-window keyboard layout for Sway
 Type=simple
 # SWAYSOCK contains Sway's pid. Import it after Sway starts, then restart
 # this service. A copy started at login, before that import, cannot see Sway.
-ExecStart=%h/Projects/sway-lang-source/target/release/sway-lang
+ExecStart=%h/.local/bin/sway-lang
 Restart=on-failure
 RestartSec=2

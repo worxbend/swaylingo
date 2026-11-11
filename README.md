@@ -43,21 +43,30 @@ cargo build --release
 4. Open a new window. It starts in English.
 5. Switch to an empty workspace. The layout returns to English. Window A is still Ukrainian when you go back.
 
-## systemd
+## Install
 
-`sway-lang.service` is in the repository. It is not installed and not enabled.
-
-`SWAYSOCK` looks like `/run/user/1000/sway-ipc.1000.<sway-pid>.sock`. The pid changes every time Sway starts. `sway --get-socketpath` fails without that variable, and so does this daemon. Import it after Sway is up, then start the service:
+`install.sh` downloads the Linux binary for this machine from the GitHub release, checks `SHA256SUMS`, and writes:
 
 ```
-mkdir -p ~/.config/systemd/user
-cp sway-lang.service ~/.config/systemd/user/
-systemctl --user daemon-reload
+~/.local/bin/sway-lang
+~/.config/systemd/user/sway-lang.service
+```
+
+amd64 is `sway-lang-linux-amd64`. arm64 is `sway-lang-linux-arm64`. Those two files, the checksums, and `install.sh` are attached to each `vX.Y.Z` release by `.github/workflows/release.yml`.
+
+```
+./install.sh
+./install.sh v0.1.0
+```
+
+The unit is not enabled. `SWAYSOCK` looks like `/run/user/1000/sway-ipc.1000.<sway-pid>.sock`. The pid changes every time Sway starts. After Sway is up:
+
+```
 systemctl --user import-environment SWAYSOCK
 systemctl --user restart sway-lang.service
 ```
 
-A service started at login, before that import, exits and stays down until you import and restart it. Edit `ExecStart` in the unit if the binary does not live at `~/Projects/sway-lang-source/target/release/sway-lang`.
+A service started at login, before that import, exits and stays down until you import and restart it. `~/.local/bin` must be on `PATH` for a shell. The unit uses the full path, so systemd does not need that.
 
 ## How it is put together
 
