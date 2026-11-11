@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sway-lang</title>
+    <meta
+      name="description"
+      content="A Sway daemon that gives each window its own keyboard layout. New windows and empty workspaces start on the first layout."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Besley:opsz,wght@12..72,520;12..72,650&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="intro">
+        <h1>sway-lang</h1>
+        <p class="lede">
+          Each Sway window keeps the keyboard layout you last used there.
+          Come back, and the keys are already in that language.
+        </p>
+        <p>
+          A new window starts on the first layout in your Sway config. An empty
+          workspace does too. For <code>us,ua</code>, that first layout is English.
+        </p>
+      </div>
+      <div class="desk" id="desk">
+        <div class="windows" id="windows" role="group" aria-label="Windows"></div>
+        <div class="keys" role="group" aria-label="Keyboard layout">
+          <button type="button" class="key" id="key-en" data-index="0">
+            <span class="lamp" aria-hidden="true"></span>
+            <span class="legend">en</span>
+            <span class="hint">us</span>
+          </button>
+          <button type="button" class="key" id="key-ua" data-index="1">
+            <span class="lamp" aria-hidden="true"></span>
+            <span class="legend">ук</span>
+            <span class="hint">ua</span>
+          </button>
+        </div>
+        <p class="now" id="now" aria-live="polite"></p>
+        <div class="row">
+          <button type="button" id="spawn">Open a new window</button>
+          <button type="button" id="empty">Show an empty workspace</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <h2>What you see</h2>
+        <p>
+          Focus a window in the desk above. Its key lights. Press the other key
+          and only that window changes. Leave for the empty workspace and the
+          keyboard returns to English. The window you left still remembers
+          Ukrainian.
+        </p>
+      </section>
+      <section>
+        <h2>What the daemon does</h2>
+        <p>
+          Sway owns the keymap. You keep <code>xkb_layout</code> and Super+Space.
+          sway-lang listens on the Sway socket and, when focus moves, runs
+          <code>xkb_switch_layout</code> for <code>type:keyboard</code>.
+        </p>
+        <ol>
+          <li>You change the layout. The focused window stores that index.</li>
+          <li>You focus a window you have used. Its index comes back.</li>
+          <li>You focus a new window, or no window at all. Index 0 comes back.</li>
+        </ol>
+      </section>
+      <section>
+        <h2>Run it</h2>
+        <pre><code>cargo build --release
+./target/release/sway-lang</code></pre>
+        <p>
+          The program reads <code>SWAYSOCK</code>. That path contains Sway’s pid,
+          so a systemd user service must import the variable after Sway starts,
+          then restart. The unit file in the repository is not installed for you.
+        </p>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

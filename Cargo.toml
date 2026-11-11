@@ -1,0 +1,8 @@
+[package]
+name = "sway-lang"
+version = "0.1.0"
+edition = "2024"
+description = "Remember the Sway keyboard layout for each window"
+
+[dependencies]
+swayipc = "4"
