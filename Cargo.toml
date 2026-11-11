@@ -1,10 +1,11 @@
 [package]
 name = "sway-lang"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 description = "Remember the Sway keyboard layout for each window"
 
 [dependencies]
+libc = { version = "0.2", default-features = false }
 swayipc = "4"
 toml = "0.8"
 

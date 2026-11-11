@@ -1,4 +1,4 @@
-.TH SWAY-LANG 1 "2026-11-11" "sway-lang 0.2.0" "User Commands"
+.TH SWAY-LANG 1 "2026-11-11" "sway-lang 0.3.0" "User Commands"
 .SH NAME
 sway-lang \- remember the Sway keyboard layout for each window
 .SH SYNOPSIS
@@ -23,6 +23,11 @@ the first name in
 .PP
 The window that is focused when the daemon starts keeps the layout Sway is
 using at that moment. It does not pick up an app rule.
+.PP
+An X11 dialog whose
+.B transient_for
+is the X11 id of a remembered window copies that window's layout and does
+not use an app rule.
 .SH OPTIONS
 .TP
 .BR \-h ", " \-\-help
@@ -140,15 +145,29 @@ French.
 .PP
 If nothing matches, sway-lang exits 2 and lists the index and name of each
 known layout. A parse error names the file.
+.SH SIGNALS
+.TP
+.B SIGHUP
+Reloads the config file and replaces the fallback and the app rules, leaves
+remembered windows in place, and keeps the previous rules when the file is
+bad.
 .SH EXIT STATUS
 .TP
 .B 0
 Help, version, or the process ran until Sway shut down.
+An unset or empty
+.B SWAYSOCK
+under systemd exits 0.
 .TP
 .B 1
-Sway could not be used. Typical cause:
+Sway could not be used.
+An unset or empty
 .B SWAYSOCK
-is not set.
+outside systemd exits 1.
+The same unset or empty
+.B SWAYSOCK
+under systemd exits 0.
+Running as root exits 1.
 .TP
 .B 2
 Bad flags, a config file that could not be read or parsed, or a layout

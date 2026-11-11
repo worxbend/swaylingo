@@ -31,6 +31,7 @@ jobs:
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: sudo apt-get update && sudo apt-get install --yes gcc-aarch64-linux-gnu
       - name: test
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: cargo test --locked
       - name: build
         env:
@@ -69,7 +70,8 @@ jobs:
           cp man/sway-lang.1 "$stage/"
           (
             cd "$stage"
-            sha256sum sway-lang-linux-amd64 sway-lang-linux-arm64 sway-lang.1 > SHA256SUMS
+            sha256sum --check --strict "${GITHUB_WORKSPACE}/install/install.sh.sha256"
+            sha256sum sway-lang-linux-amd64 sway-lang-linux-arm64 sway-lang.1 install.sh > SHA256SUMS
           )
           gh release create "${GITHUB_REF_NAME}" \
             --repo "${GITHUB_REPOSITORY}" \

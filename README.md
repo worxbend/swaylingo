@@ -77,13 +77,14 @@ curl --fail --location --proto '=https' --tlsv1.2 \
   --output install.sh \
   https://github.com/worxbend/sway-lang-source/releases/latest/download/install.sh
 curl --fail --location --proto '=https' --tlsv1.2 \
-  --output install.sh.sha256 \
-  https://raw.githubusercontent.com/worxbend/sway-lang-source/main/install/install.sh.sha256
+  --output SHA256SUMS \
+  https://github.com/worxbend/sway-lang-source/releases/latest/download/SHA256SUMS
+grep -E '^[[:xdigit:]]{64}  install\.sh$' SHA256SUMS > install.sh.sha256
 sha256sum --check --strict install.sh.sha256
 bash install.sh
 ```
 
-Check `install.sh` against the digest in the git repo before you run it. That digest is not a release asset. The script then checks `SHA256SUMS`. Release assets are not signed until a maintainer publishes `SHA256SUMS.asc`. Until that file is on the release, the script keeps going after the checksum. It writes:
+Check `install.sh` against the `install.sh` line in the release `SHA256SUMS` before you run it. The script then checks `SHA256SUMS`. Release assets are not signed until a maintainer publishes `SHA256SUMS.asc`. Until that file is on the release, the script keeps going after the checksum. It writes:
 
 ```text
 ~/.local/bin/sway-lang
@@ -178,7 +179,7 @@ install.sh [latest|vX.Y.Z]
 | --- | --- |
 | `-h`, `--help` | Print the flags and exit. |
 | `--verbose` | Print focus, layout, and switch lines. One keyboard can show up as several Sway devices, so one Super+Space prints several lines. |
-| `--version` | Print the crate version. `0.2.0` on the current release. |
+| `--version` | Print the crate version. `0.3.0` on the current release. |
 | `--config PATH` | Read this file instead of the default path. The file must exist. |
 | `--default TOKEN` | Layout for a new window with no app rule, and for an empty desktop. Overrides `fallback`. |
 
@@ -191,6 +192,8 @@ No config file is required. A missing file at the default path is an empty confi
 The path is `--config`, else `$XDG_CONFIG_HOME/sway-lang/config.toml`, else `~/.config/sway-lang/config.toml`.
 
 `fallback` is the layout for a new window that has no app rule, and for an empty workspace. `--default` overrides it. Each key under `[apps]` is a Wayland `app_id` or an X11 `WM_CLASS`. A window you already used keeps its own layout. Quote a key that contains a dot.
+
+Stop the service, then copy `app_id`, or else the X11 class, from `swaymsg -t get_tree` into `[apps]`. A wrong key is ignored.
 
 A value is a layout index, the layout's exact name, or a short code: `us`, `en`, `ua`, `uk`, `ru`, `de`, `pl`, `fr`. `us` and `en` mean English and prefer a name that contains `(US)`.
 

@@ -59,18 +59,20 @@
         is a user service.
       </p>
       <pre><code>./install.sh
-./install.sh v0.2.0</code></pre>
+./install.sh v0.3.0</code></pre>
       <p>From the release asset, without a clone:</p>
       <pre><code>curl --fail --location --proto '=https' --tlsv1.2 \
   --output install.sh \
   https://github.com/worxbend/sway-lang-source/releases/latest/download/install.sh
 curl --fail --location --proto '=https' --tlsv1.2 \
-  --output install.sh.sha256 \
-  https://raw.githubusercontent.com/worxbend/sway-lang-source/main/install/install.sh.sha256
+  --output SHA256SUMS \
+  https://github.com/worxbend/sway-lang-source/releases/latest/download/SHA256SUMS
+grep -E '^[[:xdigit:]]{64}  install\.sh$' SHA256SUMS &gt; install.sh.sha256
 sha256sum --check --strict install.sh.sha256
 bash install.sh</code></pre>
       <p>
-        Check <code>install.sh</code> against that git digest before you run it.
+        Check <code>install.sh</code> against the <code>install.sh</code> line
+        in the release <code>SHA256SUMS</code> before you run it.
         Release assets are not signed until a maintainer publishes
         <code>SHA256SUMS.asc</code>. Until then, the script checks
         <code>SHA256SUMS</code> and continues.

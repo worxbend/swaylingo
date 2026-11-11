@@ -28,7 +28,7 @@ From a clone:
 Or pin a release:
 
 ```
-./install.sh v0.2.0
+./install.sh v0.3.0
 ```
 
 From the release asset, without a clone:
@@ -38,13 +38,14 @@ curl --fail --location --proto '=https' --tlsv1.2 \
   --output install.sh \
   https://github.com/worxbend/sway-lang-source/releases/latest/download/install.sh
 curl --fail --location --proto '=https' --tlsv1.2 \
-  --output install.sh.sha256 \
-  https://raw.githubusercontent.com/worxbend/sway-lang-source/main/install/install.sh.sha256
+  --output SHA256SUMS \
+  https://github.com/worxbend/sway-lang-source/releases/latest/download/SHA256SUMS
+grep -E '^[[:xdigit:]]{64}  install\.sh$' SHA256SUMS > install.sh.sha256
 sha256sum --check --strict install.sh.sha256
 bash install.sh
 ```
 
-Check `install.sh` against that git digest before you run it. Release assets are not signed until a maintainer publishes `SHA256SUMS.asc`. Until then, the script checks `SHA256SUMS` and continues.
+Check `install.sh` against the `install.sh` line in the release `SHA256SUMS` before you run it. Release assets are not signed until a maintainer publishes `SHA256SUMS.asc`. Until then, the script checks `SHA256SUMS` and continues.
 
 The script picks the asset for this machine.
 
@@ -60,6 +61,8 @@ It checks `SHA256SUMS` before it copies anything. Then it writes:
 ${XDG_CONFIG_HOME:-~/.config}/systemd/user/sway-lang.service
 ~/.local/share/man/man1/sway-lang.1
 ```
+
+If `XDG_CONFIG_HOME` is unset, empty, or not an absolute path, the unit goes in `~/.config/systemd/user`. The install stops when that directory is outside your passwd home.
 
 and runs `systemctl --user daemon-reload` when a user session is available. It does not enable the service and it does not start it.
 

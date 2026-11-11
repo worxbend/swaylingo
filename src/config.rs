@@ -168,7 +168,7 @@ fn parse_token(path: &Path, label: &str, value: &toml::Value) -> Result<LayoutTo
     Ok(LayoutToken::Index(index))
 }
 
-fn resolve_token(token: &LayoutToken, names: &[String]) -> Result<u32, String> {
+pub(crate) fn resolve_token(token: &LayoutToken, names: &[String]) -> Result<u32, String> {
     match token {
         LayoutToken::Index(index) => index_in_range(*index, names),
         LayoutToken::Name(name) => resolve_name(name, names),

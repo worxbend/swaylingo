@@ -1,0 +1,22 @@
+name: ci
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+      - name: test
+        run: cargo test --locked
+      - name: install self-check
+        run: bash install.sh --self-check
+      - name: install script digest
+        run: sha256sum --check --strict install/install.sh.sha256
