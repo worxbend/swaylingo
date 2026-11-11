@@ -1,14 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img">
-  <title>swaylingo</title>
-  <rect width="1024" height="1024" fill="#1c1712"/>
-  <rect x="76" y="168" width="412" height="688" fill="#14110e" stroke="#9ec4d6" stroke-width="28"/>
-  <rect x="132" y="260" width="248" height="32" fill="#4a4036"/>
-  <rect x="132" y="320" width="176" height="32" fill="#4a4036"/>
-  <rect x="148" y="612" width="268" height="168" rx="22" fill="#a87412"/>
-  <rect x="148" y="600" width="268" height="156" rx="22" fill="#e2a322"/>
-  <rect x="536" y="168" width="412" height="688" fill="#14110e" stroke="#6e655a" stroke-width="28"/>
-  <rect x="620" y="292" width="260" height="40" fill="#2c261f"/>
-  <rect x="668" y="360" width="212" height="40" fill="#2c261f"/>
-  <rect x="608" y="624" width="268" height="168" rx="22" fill="#c8beae"/>
-  <rect x="608" y="612" width="268" height="156" rx="22" fill="#f4efe6"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" role="img" viewBox="0 0 1024 1024"><title>swaylingo</title><rect width="1024" height="1024" fill="#1c1712"/><rect width="412" height="688" x="76" y="168" fill="#14110e" stroke="#9ec4d6" stroke-width="28"/><rect width="248" height="32" x="132" y="260" fill="#4a4036"/><rect width="176" height="32" x="132" y="320" fill="#4a4036"/><rect width="268" height="168" x="148" y="612" fill="#a87412" rx="22"/><rect width="268" height="156" x="148" y="600" fill="#e2a322" rx="22"/><rect width="412" height="688" x="536" y="168" fill="#14110e" stroke="#6e655a" stroke-width="28"/><rect width="260" height="40" x="620" y="292" fill="#2c261f"/><rect width="212" height="40" x="668" y="360" fill="#2c261f"/><rect width="268" height="168" x="608" y="624" fill="#c8beae" rx="22"/><rect width="268" height="156" x="608" y="612" fill="#f4efe6" rx="22"/></svg>
