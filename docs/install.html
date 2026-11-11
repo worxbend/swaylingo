@@ -22,7 +22,7 @@
       <nav aria-label="Site">
         <a href="index.html">Overview</a>
         <a href="install.html" aria-current="page">Install</a>
-        <a href="https://github.com/worxbend/sway-lang-source">Source</a>
+        <a href="https://github.com/worxbend/swaylingo">Source</a>
       </nav>
     </header>
     <div class="sheet">
@@ -55,12 +55,12 @@
       <h2>2. Install the release</h2>
       <p>
         Install the <code>skbd</code> binary with
-        <a href="https://github.com/worxbend/binstaller">binstaller</a>.
+        <a href="https://worxbend.github.io/binstaller/">binstaller</a>.
         The profile is <code>packaging/swaylingo.binstaller.yaml</code>.
-        <code>binstaller plan</code> prints the URL before anything is written.
-        <code>binstaller apply</code> checks SHA-256 once you paste the hash
-        from <code>SHA256SUMS</code>. binstaller does not install the systemd
-        unit or the man page.
+        <code>binstaller plan</code> prints the URL and the checksum before
+        anything is written. <code>binstaller apply</code> checks that SHA-256.
+        binstaller rejects installer scripts, so it does not install the
+        systemd unit or the man page.
       </p>
       <pre><code>binstaller plan --config packaging/swaylingo.binstaller.yaml
 binstaller apply --config packaging/swaylingo.binstaller.yaml</code></pre>
@@ -75,10 +75,10 @@ binstaller apply --config packaging/swaylingo.binstaller.yaml</code></pre>
       <p>From the release asset, without a clone:</p>
       <pre><code>curl --fail --location --proto '=https' --tlsv1.2 \
   --output install.sh \
-  https://github.com/worxbend/sway-lang-source/releases/latest/download/install.sh
+  https://github.com/worxbend/swaylingo/releases/latest/download/install.sh
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output SHA256SUMS \
-  https://github.com/worxbend/sway-lang-source/releases/latest/download/SHA256SUMS
+  https://github.com/worxbend/swaylingo/releases/latest/download/SHA256SUMS
 grep -E '^[[:xdigit:]]{64}  install\.sh$' SHA256SUMS &gt; install.sh.sha256
 sha256sum --check --strict install.sh.sha256
 bash install.sh</code></pre>

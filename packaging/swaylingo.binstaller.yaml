@@ -1,11 +1,14 @@
-# Install the skbd binary with https://github.com/worxbend/binstaller
-# This file does not install the systemd unit or the man page. Use install.sh for those.
+# Binary only. binstaller rejects installer scripts, so this file does not
+# write the systemd unit or the man page. Use install.sh for those.
 #
-# binstaller plan --config packaging/swaylingo.binstaller.yaml
+# https://worxbend.github.io/binstaller/
+#
+# binstaller plan  --config packaging/swaylingo.binstaller.yaml
 # binstaller apply --config packaging/swaylingo.binstaller.yaml
 #
-# Paste the SHA-256 of the asset from that release's SHA256SUMS into checksum.value
-# before you switch policy.mode to strict. A missing checksum is printed in the plan.
+# `when` keeps the other architecture out. Names are unique because
+# binstaller rejects duplicate plan names at load time.
+# Checksums are the v0.4.0 lines from SHA256SUMS.
 
 apiVersion: binstaller.io/v1alpha1
 kind: BinaryDistributionProfile
@@ -13,11 +16,11 @@ kind: BinaryDistributionProfile
 metadata:
   name: swaylingo
   annotations:
-    binstaller.io/description: skbd, the swaylingo keyboard-layout daemon, from GitHub releases.
+    binstaller.io/description: skbd from the swaylingo GitHub release.
 
 spec:
   policy:
-    mode: developer
+    mode: strict
     continueOnError: false
     appsDir: "${HOME}/.apps"
     allowSudoSymlinks: false
@@ -27,7 +30,7 @@ spec:
     swaylingo: v0.4.0
 
   plan:
-    - name: skbd
+    - name: skbd-linux-amd64
       kind: binary-tool
       description: Per-window keyboard layout daemon for Sway.
       when:
@@ -38,15 +41,15 @@ spec:
         versionRef: swaylingo
         installDir: "${appsDir}/swaylingo"
         download:
-          url: "https://github.com/worxbend/sway-lang-source/releases/download/${version}/skbd-linux-amd64"
+          url: "https://github.com/worxbend/swaylingo/releases/download/${version}/skbd-linux-amd64"
           filename: skbd
+          checksum:
+            algorithm: sha256
+            value: a53883abb70c55b1d532e5109591b9079d24d736f7462d4396f84f09df4de4cd
         executables:
           - path: bin/skbd
-        symlinks:
-          - path: "${HOME}/.local/bin/skbd"
-            target: "${appsDir}/swaylingo/bin/skbd"
 
-    - name: skbd
+    - name: skbd-linux-arm64
       kind: binary-tool
       description: Per-window keyboard layout daemon for Sway.
       when:
@@ -57,10 +60,10 @@ spec:
         versionRef: swaylingo
         installDir: "${appsDir}/swaylingo"
         download:
-          url: "https://github.com/worxbend/sway-lang-source/releases/download/${version}/skbd-linux-arm64"
+          url: "https://github.com/worxbend/swaylingo/releases/download/${version}/skbd-linux-arm64"
           filename: skbd
+          checksum:
+            algorithm: sha256
+            value: 4e046087aa0e08ac877c6e6214c05a9d23e44a7661d7f9bdce131d74cc8add43
         executables:
           - path: bin/skbd
-        symlinks:
-          - path: "${HOME}/.local/bin/skbd"
-            target: "${appsDir}/swaylingo/bin/skbd"

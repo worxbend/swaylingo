@@ -14,11 +14,11 @@
 
 Focus Firefox in English, switch to Telegram and type Ukrainian, then focus Firefox again. English is already back. You do not press the layout key.
 
-[![Release](https://img.shields.io/github/v/release/worxbend/sway-lang-source?sort=semver&color=C75CFF&label=release&style=for-the-badge)](https://github.com/worxbend/sway-lang-source/releases)
-[![Site](https://img.shields.io/github/actions/workflow/status/worxbend/sway-lang-source/pages.yml?branch=main&label=site&style=for-the-badge&color=5BF0B8)](https://github.com/worxbend/sway-lang-source/actions/workflows/pages.yml)
+[![Release](https://img.shields.io/github/v/release/worxbend/swaylingo?sort=semver&color=C75CFF&label=release&style=for-the-badge)](https://github.com/worxbend/swaylingo/releases)
+[![Site](https://img.shields.io/github/actions/workflow/status/worxbend/swaylingo/pages.yml?branch=main&label=site&style=for-the-badge&color=5BF0B8)](https://github.com/worxbend/swaylingo/actions/workflows/pages.yml)
 [![Rust](https://img.shields.io/badge/Rust-stable-E85D4C?logo=rust&logoColor=white&style=for-the-badge)](https://www.rust-lang.org)
 
-[**Website**](https://worxbend.github.io/sway-lang-source/) · [**Install**](https://worxbend.github.io/sway-lang-source/install.html) · [**Releases**](https://github.com/worxbend/sway-lang-source/releases) · [**Issues**](https://github.com/worxbend/sway-lang-source/issues)
+[**Website**](https://worxbend.github.io/swaylingo/) · [**Install**](https://worxbend.github.io/swaylingo/install.html) · [**Releases**](https://github.com/worxbend/swaylingo/releases) · [**Issues**](https://github.com/worxbend/swaylingo/issues)
 
 </div>
 
@@ -44,7 +44,7 @@ empty workspace, fallback English
 new Alacritty window, fallback English
 ```
 
-Try the same rules in the browser: [the desk](https://worxbend.github.io/sway-lang-source/). The demo windows are labeled Firefox and Telegram.
+Try the same rules in the browser: [the desk](https://worxbend.github.io/swaylingo/). The demo windows are labeled Firefox and Telegram.
 
 ---
 
@@ -77,25 +77,28 @@ Reload Sway. `us` is English. `ua` is Ukrainian.
 
 ### 2. Install the binary with binstaller
 
-[binstaller](https://github.com/worxbend/binstaller) is how this binary should land on a machine. One YAML profile, a plan you can read before anything is written, a SHA-256 check, and a lock file so the next machine gets the same bytes. It installs `skbd` only. It does not write the systemd unit or the man page.
-
-Install binstaller once:
+The site is [worxbend.github.io/binstaller](https://worxbend.github.io/binstaller/). One YAML profile, `plan` before any write, SHA-256 checked, then `apply`. binstaller refuses installer scripts, so this step installs the `skbd` binary only. The systemd unit and the man page stay on `install.sh`.
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSfL \
   https://github.com/worxbend/binstaller/releases/latest/download/install.sh | sh
 ```
 
-Then, from a clone of this repo:
+From a clone of this repo:
 
 ```bash
 binstaller plan --config packaging/swaylingo.binstaller.yaml
 binstaller apply --config packaging/swaylingo.binstaller.yaml
+binstaller versions --config packaging/swaylingo.binstaller.yaml
 ```
 
-`plan` prints the URL and says if the checksum is still empty. Paste the hash from that release's `SHA256SUMS` into `checksum.value` before you rely on it. `apply` puts the binary in `~/.apps/swaylingo/bin/skbd` and links `~/.local/bin/skbd`.
+`plan` prints the URL and the checksum. Nothing is written. `apply` puts the binary in `~/.apps/swaylingo/bin/skbd`. A link into `~/.local/bin` is not in the profile: binstaller only allows a relative symlink there, and `install.sh` is what writes `~/.local/bin/skbd`. The other architecture is skipped by `when`. To force one entry:
 
-The profile in [packaging/swaylingo.binstaller.yaml](packaging/swaylingo.binstaller.yaml) asks for `skbd-linux-amd64` or `skbd-linux-arm64` from the current release. Read the plan before you apply.
+```bash
+binstaller apply --config packaging/swaylingo.binstaller.yaml --only skbd-linux-amd64
+```
+
+The profile is [packaging/swaylingo.binstaller.yaml](packaging/swaylingo.binstaller.yaml). It is `policy.mode: strict` and pins `v0.4.0` with the hashes from that release's `SHA256SUMS`. Duplicate plan names are rejected, so the two machines are `skbd-linux-amd64` and `skbd-linux-arm64`.
 
 ### 3. Install the unit and the man page
 
@@ -104,7 +107,7 @@ The profile in [packaging/swaylingo.binstaller.yaml](packaging/swaylingo.binstal
 ```bash
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output install.sh \
-  https://github.com/worxbend/sway-lang-source/releases/latest/download/install.sh
+  https://github.com/worxbend/swaylingo/releases/latest/download/install.sh
 bash install.sh
 ```
 
@@ -268,8 +271,8 @@ The unit is a systemd user service. Drop the sudo.
 ## Development
 
 ```bash
-git clone https://github.com/worxbend/sway-lang-source
-cd sway-lang-source
+git clone https://github.com/worxbend/swaylingo
+cd swaylingo
 cargo test
 cargo clippy -- -D warnings
 cargo build --release

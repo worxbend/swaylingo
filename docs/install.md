@@ -19,7 +19,7 @@ Reload Sway after you change this. `us,ua` means index 0 is English and index 1 
 
 ### The binary, with binstaller
 
-[binstaller](https://github.com/worxbend/binstaller) is the way to install the `skbd` binary. It reads [packaging/swaylingo.binstaller.yaml](../packaging/swaylingo.binstaller.yaml), prints a plan, checks SHA-256 when you fill `checksum.value` from `SHA256SUMS`, and can lock that result. It does not install the systemd unit or the man page.
+[binstaller](https://worxbend.github.io/binstaller/) is the way to install the `skbd` binary. It reads [packaging/swaylingo.binstaller.yaml](../packaging/swaylingo.binstaller.yaml), prints a plan, checks the SHA-256 already in that file, and can lock the result. It rejects installer scripts, so it does not install the systemd unit or the man page.
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSfL \
@@ -28,7 +28,7 @@ binstaller plan --config packaging/swaylingo.binstaller.yaml
 binstaller apply --config packaging/swaylingo.binstaller.yaml
 ```
 
-Read the plan before apply. The profile names `skbd-linux-amd64` and `skbd-linux-arm64`.
+Read the plan before apply. The two entries are `skbd-linux-amd64` and `skbd-linux-arm64`. `when` skips the other architecture. `--only skbd-linux-amd64` installs just that one.
 
 ### The unit and the man page
 
@@ -51,10 +51,10 @@ From the release asset, without a clone:
 ```
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output install.sh \
-  https://github.com/worxbend/sway-lang-source/releases/latest/download/install.sh
+  https://github.com/worxbend/swaylingo/releases/latest/download/install.sh
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output SHA256SUMS \
-  https://github.com/worxbend/sway-lang-source/releases/latest/download/SHA256SUMS
+  https://github.com/worxbend/swaylingo/releases/latest/download/SHA256SUMS
 grep -E '^[[:xdigit:]]{64}  install\.sh$' SHA256SUMS > install.sh.sha256
 sha256sum --check --strict install.sh.sha256
 bash install.sh

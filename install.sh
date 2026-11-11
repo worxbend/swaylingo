@@ -16,7 +16,7 @@ set -Eeuo pipefail
 shopt -s inherit_errexit
 IFS=$'\n\t'
 
-readonly repo="worxbend/sway-lang-source"
+readonly repo="worxbend/swaylingo"
 readonly script_name="install.sh"
 passwd_home=""
 
