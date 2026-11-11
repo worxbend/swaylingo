@@ -28,7 +28,7 @@ From a clone:
 Or pin a release:
 
 ```
-./install.sh v0.1.1
+./install.sh v0.1.2
 ```
 
 From the release asset, without a clone:

@@ -169,7 +169,7 @@ install.sh [latest|vX.Y.Z]
 | Flag | What it does |
 | --- | --- |
 | `--verbose` | Print focus, layout, and switch lines. One keyboard can show up as several Sway devices, so one Super+Space prints several lines. |
-| `--version` | Print the crate version. `0.1.1` on the current release. |
+| `--version` | Print the crate version. `0.1.2` on the current release. |
 
 ---
 
