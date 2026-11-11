@@ -28,6 +28,7 @@
           A new window starts on the first layout in your Sway config. An empty
           workspace does too. For <code>us,ua</code>, that first layout is English.
         </p>
+        <p><a href="install.html">Install on Linux</a></p>
       </div>
       <div class="desk" id="desk">
         <div class="windows" id="windows" role="group" aria-label="Windows"></div>
@@ -75,13 +76,12 @@
         </ol>
       </section>
       <section>
-        <h2>Run it</h2>
-        <pre><code>cargo build --release
-./target/release/sway-lang</code></pre>
+        <h2>Install</h2>
         <p>
-          The program reads <code>SWAYSOCK</code>. That path contains Sway’s pid,
-          so a systemd user service must import the variable after Sway starts,
-          then restart. The unit file in the repository is not installed for you.
+          The <a href="install.html">installation guide</a> covers the release
+          binary, the systemd user unit, and the <code>SWAYSOCK</code> import.
+          The short form is <code>./install.sh</code>, then, after Sway is up,
+          import <code>SWAYSOCK</code> and restart the service.
         </p>
       </section>
     </main>

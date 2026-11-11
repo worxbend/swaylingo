@@ -31,7 +31,7 @@ cargo build --release
 | `cargo build --release` | Writes `target/release/sway-lang` |
 | `./target/release/sway-lang` | Listens until Sway exits |
 | `./target/release/sway-lang --verbose` | Prints focus, layout, and switch lines |
-| `./target/release/sway-lang --version` | Prints `0.1.0` |
+| `./target/release/sway-lang --version` | Prints `0.1.1` |
 
 `--verbose` prints one line per keyboard device. One physical keyboard often appears as several Sway devices, so one Super+Space prints several `layout` lines.
 
@@ -45,6 +45,8 @@ cargo build --release
 
 ## Install
 
+The installation guide is [docs/install.md](docs/install.md). The same steps are on the site at [docs/install.html](docs/install.html).
+
 `install.sh` downloads the Linux binary for this machine from the GitHub release, checks `SHA256SUMS`, and writes:
 
 ```
@@ -56,7 +58,7 @@ amd64 is `sway-lang-linux-amd64`. arm64 is `sway-lang-linux-arm64`. Those two fi
 
 ```
 ./install.sh
-./install.sh v0.1.0
+./install.sh v0.1.1
 ```
 
 The unit is not enabled. `SWAYSOCK` looks like `/run/user/1000/sway-ipc.1000.<sway-pid>.sock`. The pid changes every time Sway starts. After Sway is up:

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Install sway-lang</title>
+    <meta
+      name="description"
+      content="Install the sway-lang release on Linux amd64 or arm64 and start the systemd user service after Sway."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Besley:opsz,wght@12..72,520;12..72,650&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="page">
+    <nav class="top">
+      <a href="index.html">sway-lang</a>
+    </nav>
+    <h1>Install</h1>
+    <p class="lede">
+      Linux on amd64 or arm64. Sway is already running. You install a release
+      binary and a systemd user unit. The unit is not enabled. Sway still owns
+      the keymap.
+    </p>
+
+    <section>
+      <h2>1. Give Sway more than one layout</h2>
+      <p>
+        sway-lang switches an index. It does not create layouts. The first name
+        in <code>xkb_layout</code> is layout 0, and that is the default for a
+        new window and for an empty workspace.
+      </p>
+      <pre><code>input type:keyboard {
+    xkb_layout us,ua
+    xkb_options grp:win_space_toggle
+}</code></pre>
+      <p>
+        Reload Sway after you change this. <code>us,ua</code> means index 0 is
+        English and index 1 is Ukrainian. Super+Space still changes the layout.
+        The daemon only remembers which index belonged to which window.
+      </p>
+    </section>
+
+    <section>
+      <h2>2. Install the release</h2>
+      <p>
+        You need bash 4.4 or newer, <code>curl</code>, <code>sha256sum</code>,
+        and <code>install</code>. Run this as your user, not as root. The unit
+        is a user service.
+      </p>
+      <pre><code>./install.sh
+./install.sh v0.1.1</code></pre>
+      <p>From the release asset, without a clone:</p>
+      <pre><code>curl --fail --location --proto '=https' --tlsv1.2 \
+  --output install.sh \
+  https://github.com/worxbend/sway-lang-source/releases/latest/download/install.sh
+bash install.sh</code></pre>
+      <p>The script picks the asset for this machine.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Machine</th>
+            <th>File</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>x86_64</code></td>
+            <td><code>sway-lang-linux-amd64</code></td>
+          </tr>
+          <tr>
+            <td><code>aarch64</code> or <code>arm64</code></td>
+            <td><code>sway-lang-linux-arm64</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        It checks <code>SHA256SUMS</code> before it copies anything. Then it
+        writes <code>~/.local/bin/sway-lang</code> and
+        <code>~/.config/systemd/user/sway-lang.service</code>, and runs
+        <code>systemctl --user daemon-reload</code> when a user session is
+        available. It does not enable the service and it does not start it.
+      </p>
+      <p>
+        <code>~/.local/bin</code> must be on <code>PATH</code> if you want to
+        run <code>sway-lang</code> from a shell. The unit uses the full path, so
+        systemd does not need that.
+      </p>
+    </section>
+
+    <section>
+      <h2>3. Start it after Sway</h2>
+      <p>
+        <code>SWAYSOCK</code> contains Sway’s pid. The path changes every time
+        Sway starts. A service that starts at login, before that variable is
+        copied into the user manager, exits and stays down.
+      </p>
+      <p>
+        In a terminal that Sway started, or any shell where
+        <code>echo "$SWAYSOCK"</code> prints a path:
+      </p>
+      <pre><code>systemctl --user import-environment SWAYSOCK
+systemctl --user restart sway-lang.service</code></pre>
+      <p>
+        To do that on every Sway start, add this line to the Sway config. It
+        restarts the unit you already installed. It does not replace the unit.
+      </p>
+      <pre><code>exec_always "systemctl --user import-environment SWAYSOCK &amp;&amp; systemctl --user restart sway-lang.service"</code></pre>
+    </section>
+
+    <section>
+      <h2>4. Check</h2>
+      <ol>
+        <li>Focus window A. Press Super+Space until the layout is Ukrainian.</li>
+        <li>Focus window B. Press Super+Space until the layout is English.</li>
+        <li>Focus window A. The layout returns to Ukrainian.</li>
+        <li>Open a new window. It starts on layout 0.</li>
+        <li>
+          Switch to an empty workspace. The layout returns to layout 0. Window A
+          is still Ukrainian when you go back.
+        </li>
+      </ol>
+      <p>
+        <code>systemctl --user status sway-lang.service</code> should show the
+        unit running.
+        <code>journalctl --user -u sway-lang.service</code> shows its stderr.
+        Stop the service before you run
+        <code>~/.local/bin/sway-lang --verbose</code> in a terminal, so two
+        copies are not both switching.
+      </p>
+    </section>
+
+    <section>
+      <h2>Upgrade</h2>
+      <pre><code>./install.sh
+systemctl --user import-environment SWAYSOCK
+systemctl --user restart sway-lang.service</code></pre>
+      <p>The same command replaces the binary and the unit file.</p>
+    </section>
+
+    <section>
+      <h2>Remove</h2>
+      <pre><code>systemctl --user disable --now sway-lang.service
+rm -- ~/.local/bin/sway-lang
+rm -- ~/.config/systemd/user/sway-lang.service
+systemctl --user daemon-reload</code></pre>
+      <p><code>disable</code> is harmless if the unit was never enabled.</p>
+    </section>
+
+    <section>
+      <h2>Build from source instead</h2>
+      <p>Sway must be running, and the shell must have <code>SWAYSOCK</code>.</p>
+      <pre><code>cargo test
+cargo build --release
+./target/release/sway-lang</code></pre>
+      <p>
+        That binary is not copied into <code>~/.local/bin</code>. Use
+        <code>install.sh</code> when you want the release and the unit.
+      </p>
+    </section>
+  </body>
+</html>
