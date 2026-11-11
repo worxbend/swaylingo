@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="assets/banner.jpg" alt="Two application windows above a keyboard, one key lit" width="100%">
+<img src="assets/banner.png" alt="Firefox focused in English, Telegram still on Ukrainian, English key lit" width="100%">
 
 <br>
 
-<img src="assets/logo.jpg" alt="swaylingo mark" width="96">
+<img src="assets/logo.png" alt="Focused window with a lit key, beside a window with a quiet key" width="96">
 
 # swaylingo
 
