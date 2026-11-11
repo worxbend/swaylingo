@@ -1,63 +1,70 @@
 <div align="center">
 
-# ⌨️ sway-lang
+<img src="assets/banner.jpg" alt="Two application windows above a keyboard, one key lit" width="100%">
 
-### 🪟 each window keeps its own keyboard. focus comes back already switched.
+<br>
 
-**Sway owns the keymap. This daemon just remembers.**
+<img src="assets/logo.jpg" alt="swaylingo mark" width="96">
+
+# swaylingo
+
+### the binary is `skbd`
+
+**Each Sway window keeps its own keyboard layout.**
+
+Focus Firefox in English, switch to Telegram and type Ukrainian, then focus Firefox again. English is already back. You do not press the layout key.
 
 [![Release](https://img.shields.io/github/v/release/worxbend/sway-lang-source?sort=semver&color=C75CFF&label=release&style=for-the-badge)](https://github.com/worxbend/sway-lang-source/releases)
 [![Site](https://img.shields.io/github/actions/workflow/status/worxbend/sway-lang-source/pages.yml?branch=main&label=site&style=for-the-badge&color=5BF0B8)](https://github.com/worxbend/sway-lang-source/actions/workflows/pages.yml)
 [![Rust](https://img.shields.io/badge/Rust-stable-E85D4C?logo=rust&logoColor=white&style=for-the-badge)](https://www.rust-lang.org)
 
-[**🌐 Website**](https://worxbend.github.io/sway-lang-source/) &nbsp;•&nbsp;
-[**📖 Install**](https://worxbend.github.io/sway-lang-source/install.html) &nbsp;•&nbsp;
-[**📦 Releases**](https://github.com/worxbend/sway-lang-source/releases) &nbsp;•&nbsp;
-[**🐞 Issues**](https://github.com/worxbend/sway-lang-source/issues)
+[**Website**](https://worxbend.github.io/sway-lang-source/) · [**Install**](https://worxbend.github.io/sway-lang-source/install.html) · [**Releases**](https://github.com/worxbend/sway-lang-source/releases) · [**Issues**](https://github.com/worxbend/sway-lang-source/issues)
 
 </div>
 
 ---
 
-## 🤔 Why?
+## What this is
 
-Sway has one keyboard layout for the whole seat. You type Ukrainian in one window, hop to another, and the second window is still Ukrainian. macOS and GNOME do not do that. Each window keeps the layout it last used.
+`skbd` is the daemon. The project is `swaylingo`.
 
-<table>
-<tr><th align="left">😩 Sway alone</th><th align="left">✨ With sway-lang</th></tr>
-<tr valign="top"><td>
+Sway has one keyboard layout for the whole seat. `skbd` remembers the layout of each **application window** and puts it back when that window is focused. An empty workspace, with no window focused, goes back to the fallback layout. A newly opened window uses that fallback too, unless `[apps]` names that application.
 
-1. Focus notes, switch to Ukrainian
-2. Focus mail
-3. Mail is still Ukrainian
-4. Switch it back by hand
-5. Go back to notes
-6. Switch to Ukrainian again
-
-</td><td>
+Sway still owns the keymap. Super+Space still switches. `skbd` only restores.
 
 ```text
-notes 🇺🇦  →  mail 🇬🇧  →  notes
-                         🇺🇦 is already back
-new window, empty workspace   🇬🇧 layout 0
+Firefox window, English
+        ↓ focus
+Telegram window, you switch to Ukrainian
+        ↓ focus
+Firefox window, English is restored
+        ↓
+empty workspace, fallback English
+        ↓
+new Alacritty window, fallback English
 ```
 
-**Super+Space still works.** The daemon only puts the right layout back when focus moves.
-
-</td></tr>
-</table>
-
-Layout 0 is the first name in `xkb_layout`. With `us,ua`, that is English. A brand new window starts there. An empty workspace does too. A window you already used comes back in whatever you left it on.
-
-Try the same rules in the browser: [the desk](https://worxbend.github.io/sway-lang-source/).
+Try the same rules in the browser: [the desk](https://worxbend.github.io/sway-lang-source/). The demo windows are labeled Firefox and Telegram.
 
 ---
 
-## ⚡ Quick start
+## Why it feels different
 
-### 1️⃣ Two layouts in Sway
+| Sway alone | With skbd |
+| --- | --- |
+| Focus the Firefox window and switch to Ukrainian. | Firefox stays on the layout you left it on. |
+| Focus the Telegram window. It is still Ukrainian. | Telegram can start in Ukrainian because `[apps]` says so. |
+| Switch it back by hand. | Come back to Firefox and English is already there. |
+| Open Alacritty. It inherits Ukrainian. | A new Alacritty window starts on the fallback, English when `fallback` is `us`. |
+| Switch to an empty workspace. Ukrainian stays. | An empty workspace uses the fallback. |
 
-The daemon switches an index. It does not invent layouts.
+---
+
+## Quick start
+
+### 1. Two layouts in Sway
+
+`skbd` switches an index. It does not create layouts. The first name in `xkb_layout` is layout 0.
 
 ```
 input type:keyboard {
@@ -66,185 +73,184 @@ input type:keyboard {
 }
 ```
 
-Reload Sway. `us` is index 0. `ua` is index 1.
+Reload Sway. `us` is English. `ua` is Ukrainian.
 
-### 2️⃣ Install the binary
+### 2. Install the binary with binstaller
 
-Linux amd64 or arm64. Run it as your user, not root.
+[binstaller](https://github.com/worxbend/binstaller) is how this binary should land on a machine. One YAML profile, a plan you can read before anything is written, a SHA-256 check, and a lock file so the next machine gets the same bytes. It installs `skbd` only. It does not write the systemd unit or the man page.
+
+Install binstaller once:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSfL \
+  https://github.com/worxbend/binstaller/releases/latest/download/install.sh | sh
+```
+
+Then, from a clone of this repo:
+
+```bash
+binstaller plan --config packaging/swaylingo.binstaller.yaml
+binstaller apply --config packaging/swaylingo.binstaller.yaml
+```
+
+`plan` prints the URL and says if the checksum is still empty. Paste the hash from that release's `SHA256SUMS` into `checksum.value` before you rely on it. `apply` puts the binary in `~/.apps/swaylingo/bin/skbd` and links `~/.local/bin/skbd`.
+
+The profile in [packaging/swaylingo.binstaller.yaml](packaging/swaylingo.binstaller.yaml) asks for `skbd-linux-amd64` or `skbd-linux-arm64` from the current release. Read the plan before you apply.
+
+### 3. Install the unit and the man page
+
+`install.sh` is the path that also writes the user service and `man skbd`. Use it after binstaller, or instead of it when you want all three files in one step. Run it as your user, not root.
 
 ```bash
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output install.sh \
   https://github.com/worxbend/sway-lang-source/releases/latest/download/install.sh
-curl --fail --location --proto '=https' --tlsv1.2 \
-  --output SHA256SUMS \
-  https://github.com/worxbend/sway-lang-source/releases/latest/download/SHA256SUMS
-grep -E '^[[:xdigit:]]{64}  install\.sh$' SHA256SUMS > install.sh.sha256
-sha256sum --check --strict install.sh.sha256
 bash install.sh
 ```
 
-Check `install.sh` against the `install.sh` line in the release `SHA256SUMS` before you run it. The script then checks `SHA256SUMS`. Release assets are not signed until a maintainer publishes `SHA256SUMS.asc`. Until that file is on the release, the script keeps going after the checksum. It writes:
+That checks `SHA256SUMS`, then writes:
 
 ```text
-~/.local/bin/sway-lang
-${XDG_CONFIG_HOME:-~/.config}/systemd/user/sway-lang.service
-~/.local/share/man/man1/sway-lang.1
+~/.local/bin/skbd
+~/.config/systemd/user/skbd.service
+~/.local/share/man/man1/skbd.1
 ```
 
-| Machine | Asset |
+| Machine | Release file |
 | --- | --- |
-| 🐧 Intel/AMD | `sway-lang-linux-amd64` |
-| 🐧 ARM64 | `sway-lang-linux-arm64` |
+| Intel / AMD | `skbd-linux-amd64` |
+| ARM64 | `skbd-linux-arm64` |
 
-The unit is **not** enabled. Full steps, upgrade, and remove: [docs/install.md](docs/install.md).
+The unit is not enabled. Full steps: [docs/install.md](docs/install.md).
 
-<details>
-<summary>🔨 <b>Build from source</b></summary>
+### 4. Start it after Sway is up
 
-<br>
-
-Sway must be running. The shell needs `SWAYSOCK`.
-
-```bash
-git clone https://github.com/worxbend/sway-lang-source
-cd sway-lang-source
-cargo build --release
-./target/release/sway-lang
-```
-
-</details>
-
-### 3️⃣ Start it after Sway is up
-
-`SWAYSOCK` contains Sway's pid. It changes every time Sway starts. Import it, then restart the unit.
+`SWAYSOCK` contains Sway's pid. It changes every time Sway starts.
 
 ```bash
 systemctl --user import-environment SWAYSOCK
-systemctl --user restart sway-lang.service
+systemctl --user restart skbd.service
 ```
 
-Same thing on every Sway start:
+On every Sway start:
 
 ```
-exec_always "systemctl --user import-environment SWAYSOCK && systemctl --user restart sway-lang.service"
+exec_always "systemctl --user import-environment SWAYSOCK && systemctl --user restart skbd.service"
 ```
 
-A unit that starts at login, before that import, exits 0 and stays down. `Restart=on-failure` does not start it again. A socket path that is missing or not a socket still exits 1.
+### 5. Optional per-app rule
+
+`~/.config/swaylingo/config.toml` is optional. Copy `config.example.toml`.
+
+```toml
+fallback = "us"
+
+[apps]
+Telegram = "ua"
+discord = "ua"
+"jetbrains-idea" = "us"
+Code = "us"
+code = "us"
+```
+
+A key is the Wayland `app_id`, or the X11 class. A wrong key is ignored. Stop `skbd` first, then copy the id from `swaymsg -t get_tree`.
+
+Firefox is one Sway window, so its tabs share one layout.
 
 ---
 
-## 👀 Check it
+## Check it
 
-1. Focus window A. Super+Space until it is Ukrainian.
-2. Focus window B. Super+Space until it is English.
-3. Focus window A. Ukrainian is back. No extra key.
-4. Open a new window. It starts on layout 0.
-5. Switch to an empty workspace. Layout 0 again. Window A is still Ukrainian when you return.
+1. Focus the Firefox window. Press Super+Space until the layout is Ukrainian.
+2. Focus the Telegram window. Press Super+Space until the layout is English.
+3. Focus Firefox again. Ukrainian is back.
+4. Open a new Alacritty window. It starts on the fallback, English.
+5. Switch to an empty workspace, one with no focused window. The layout returns to the fallback. Firefox is still Ukrainian when you go back.
 
 ```bash
-systemctl --user status sway-lang.service
+systemctl --user status skbd.service
 ```
 
-Stop the service before you run `~/.local/bin/sway-lang --verbose` in a terminal. Two copies will both try to switch.
+Stop the service before you run `~/.local/bin/skbd --verbose` in a terminal. Two copies both try to switch.
 
 ---
 
-## ✨ What you get
-
-| | |
-| --- | --- |
-| 🪟 **Per window** | The layout is stored on the Sway window id, not the app. |
-| 🇬🇧 **Default is layout 0** | New windows and an empty desktop start on the first `xkb_layout`, unless `fallback` or `--default` names another layout. |
-| ↩️ **Known windows restore** | Leave a window on Ukrainian. Come back. It is Ukrainian. |
-| 🔒 **Checksum** | `install.sh` checks `SHA256SUMS` before it copies the binary. Assets are not signed until a maintainer publishes `SHA256SUMS.asc`. |
-| 🐧 **Two Linux builds** | amd64 and arm64, from the `v*` release workflow. |
-| 🤫 **Quiet** | No output unless you pass `--verbose`. |
-
----
-
-## 🚩 Commands
+## Commands
 
 ```text
-sway-lang
-sway-lang --verbose
-sway-lang --version
-sway-lang --help
-sway-lang --config PATH
-sway-lang --default TOKEN
-install.sh [latest|vX.Y.Z]
+skbd
+skbd --verbose
+skbd --version
+skbd --help
+skbd --config PATH
+skbd --default TOKEN
 ```
 
 | Flag | What it does |
 | --- | --- |
-| `-h`, `--help` | Print the flags and exit. |
-| `--verbose` | Print focus, layout, and switch lines. One keyboard can show up as several Sway devices, so one Super+Space prints several lines. |
-| `--version` | Print the crate version. `0.3.0` on the current release. |
-| `--config PATH` | Read this file instead of the default path. The file must exist. |
-| `--default TOKEN` | Layout for a new window with no app rule, and for an empty desktop. Overrides `fallback`. |
+| `--verbose` | Print focus, layout, and switch lines. |
+| `--version` | Print the crate version. `0.4.0` on the current release. |
+| `--config PATH` | Read this file. A missing explicit path is an error. |
+| `--default TOKEN` | Override `fallback` for this process. `us`, `ua`, a layout name, or an index. |
+
+`man skbd` is the same contract.
 
 ---
 
-## 🎛️ Config
+## What you get
 
-No config file is required. A missing file at the default path is an empty config, and new windows still start on layout 0.
-
-The path is `--config`, else `$XDG_CONFIG_HOME/sway-lang/config.toml`, else `~/.config/sway-lang/config.toml`.
-
-`fallback` is the layout for a new window that has no app rule, and for an empty workspace. `--default` overrides it. Each key under `[apps]` is a Wayland `app_id` or an X11 `WM_CLASS`. A window you already used keeps its own layout. Quote a key that contains a dot.
-
-Stop the service, then copy `app_id`, or else the X11 class, from `swaymsg -t get_tree` into `[apps]`. A wrong key is ignored.
-
-A value is a layout index, the layout's exact name, or a short code: `us`, `en`, `ua`, `uk`, `ru`, `de`, `pl`, `fr`. `us` and `en` mean English and prefer a name that contains `(US)`.
-
-`config.example.toml` sets Telegram and discord to `ua`, and `jetbrains-idea`, `Code`, and `code` to `us`, with `fallback` `us`. `man sway-lang` has the same rules. `install.sh` copies the page to `~/.local/share/man/man1/sway-lang.1`.
+| | |
+| --- | --- |
+| Per window | The layout is stored on the Sway window, not on the application name. |
+| Fallback | A new window and an empty workspace use layout 0, unless you set `fallback`. |
+| Per app | The first time an application appears, `[apps]` can force Ukrainian or English. |
+| Dialogs | An X11 dialog copies the layout of the window it belongs to. |
+| Two Linux builds | amd64 and arm64, from the release workflow. |
 
 ---
 
-## 🚫 Not this
+## Not this
 
-- 🦊 One layout per browser tab. Firefox is one Sway window, so its tabs share a layout.
-- 🈶 fcitx5 or ibus. English and Ukrainian here are XKB layouts.
-- 💾 A file of remembered layouts. Window ids die when Sway exits.
+- One layout per Firefox tab. One window, one layout.
+- fcitx5 or ibus. English and Ukrainian here are XKB layouts.
+- A file of window ids. Those ids die when Sway exits.
 
-The why is in [docs/decisions/0001-layout-memory.md](docs/decisions/0001-layout-memory.md).
+The decision record is [docs/decisions/0001-layout-memory.md](docs/decisions/0001-layout-memory.md).
 
 ---
 
-## 🩹 Troubleshooting
+## Troubleshooting
 
 <details>
 <summary><code>SWAYSOCK is not set</code></summary>
 
 <br>
 
-The shell is outside Sway, or the user service started before Sway imported the socket. A terminal run exits 1. The user service exits 0 until you import the variable, so systemd does not restart it in a loop.
+The shell is outside Sway, or the user service started before Sway imported the socket.
 
 ```bash
 echo "$SWAYSOCK"
 systemctl --user import-environment SWAYSOCK
-systemctl --user restart sway-lang.service
+systemctl --user restart skbd.service
 ```
 
 </details>
 
 <details>
-<summary>The layout did not change when I focused a window</summary>
+<summary>Focus did not change the layout</summary>
 
 <br>
 
-You need at least two names in `xkb_layout`. One layout has nothing to switch to. Reload Sway after you edit it.
-
-Also check you are not running two copies. `pgrep -a sway-lang` should show one process.
+You need at least two names in `xkb_layout`. Reload Sway after you edit it. `pgrep -a skbd` should show one process.
 
 </details>
 
 <details>
-<summary>New windows open in Ukrainian</summary>
+<summary>Telegram did not start in Ukrainian</summary>
 
 <br>
 
-A window seen for the first time starts on layout 0, or on the app rule from the config if that app has one. A window you already used still restores its own layout. If a new window opens in Ukrainian, the daemon was not running, that window id was already remembered, or the config names that app.
+The key under `[apps]` did not match the window. Stop the service and copy `app_id`, or the X11 class, from `swaymsg -t get_tree`. A wrong key is ignored, not an error.
 
 </details>
 
@@ -253,34 +259,34 @@ A window seen for the first time starts on layout 0, or on the app rule from the
 
 <br>
 
-The unit is a systemd **user** service. `sudo ./install.sh` installs it for root. Drop the sudo.
+The unit is a systemd user service. Drop the sudo.
 
 </details>
 
 ---
 
-## 🛠️ Development
+## Development
 
 ```bash
+git clone https://github.com/worxbend/sway-lang-source
+cd sway-lang-source
 cargo test
 cargo clippy -- -D warnings
 cargo build --release
+./target/release/skbd
 ```
 
 | Piece | Owns |
 | --- | --- |
 | `src/memory.rs` | Which window has which layout, and when to switch. |
-| `src/config.rs` | Config file, and layout names to indexes. |
-| `src/main.rs` | Two Sway sockets. One listens. One runs `xkb_switch_layout`. |
-| `install.sh` | Download, checksum, `~/.local/bin`, user unit. |
-| `.github/workflows/release.yml` | amd64 and arm64 binaries on `v*` tags. |
-
-`subscribe` in swayipc 4 consumes its socket, so commands use a second connection. The command is `input type:keyboard xkb_switch_layout`. `input *` also hits pointers.
+| `src/config.rs` | `fallback` and `[apps]`. |
+| `src/main.rs` | The Sway socket, signals, and the lock. |
+| `install.sh` | Download, checksum, `~/.local/bin/skbd`, the user unit, the man page. |
 
 ---
 
 <div align="center">
 
-**if this stopped you switching layouts by hand, a ⭐ is enough.**
+**If Firefox came back in the right language, a star is enough.**
 
 </div>

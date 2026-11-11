@@ -28,7 +28,7 @@ use memory::{Action, Happening, Memory};
 const HELP: &str = "\
 Remember the Sway keyboard layout for each window.
 
-Usage: sway-lang [options]
+Usage: skbd [options]
 
 Options:
   -h, --help           Print this help and exit
@@ -37,8 +37,8 @@ Options:
   --config PATH        Config file to read
   --default TOKEN      Layout for a new window and an empty desktop
 
-The config file is $XDG_CONFIG_HOME/sway-lang/config.toml, or
-~/.config/sway-lang/config.toml when XDG_CONFIG_HOME is unset. A missing
+The config file is $XDG_CONFIG_HOME/swaylingo/config.toml, or
+~/.config/swaylingo/config.toml when XDG_CONFIG_HOME is unset. A missing
 file at that path is an empty config. --config requires the file to exist.
 --default overrides the fallback key.
 
@@ -372,13 +372,13 @@ fn lock_file_is_ours(file: &File, path: &Path, euid: u32) -> Result<(), Stop> {
 fn lock_runtime_dir(dir: &Path) -> Result<File, Stop> {
     let euid = current_euid();
     check_runtime_dir(dir, euid)?;
-    let path = dir.join("sway-lang.lock");
+    let path = dir.join("skbd.lock");
     let file = open_lock(&path)?;
     lock_file_is_ours(&file, &path, euid)?;
     match lock_exclusive(&file) {
         Ok(()) => Ok(file),
         Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
-            Err(Stop::Fail("sway-lang: already running".to_string()))
+            Err(Stop::Fail("skbd: already running".to_string()))
         }
         Err(err) => Err(Stop::Fail(format!("cannot lock {}: {err}", path.display()))),
     }
@@ -407,7 +407,7 @@ fn lock_exclusive(file: &File) -> io::Result<()> {
         if err.kind() == io::ErrorKind::WouldBlock {
             return Err(io::Error::new(
                 io::ErrorKind::AlreadyExists,
-                "sway-lang: already running",
+                "skbd: already running",
             ));
         }
         return Err(err);
@@ -905,33 +905,33 @@ mod tests {
             assert!(HELP.contains(flag), "{flag}");
         }
         assert!(matches!(
-            parse_arg_list(["sway-lang", "-h"]).unwrap(),
+            parse_arg_list(["skbd", "-h"]).unwrap(),
             Parsed::Help
         ));
         assert!(matches!(
-            parse_arg_list(["sway-lang", "--help"]).unwrap(),
+            parse_arg_list(["skbd", "--help"]).unwrap(),
             Parsed::Help
         ));
         assert!(matches!(
-            parse_arg_list(["sway-lang", "--version"]).unwrap(),
+            parse_arg_list(["skbd", "--version"]).unwrap(),
             Parsed::Version
         ));
     }
 
     #[test]
     fn unknown_flag_and_missing_value_are_errors() {
-        let unknown = parse_arg_list(["sway-lang", "--nope"]).unwrap_err();
+        let unknown = parse_arg_list(["skbd", "--nope"]).unwrap_err();
         assert!(unknown.contains("unknown argument: --nope"), "{unknown}");
-        let config = parse_arg_list(["sway-lang", "--config"]).unwrap_err();
+        let config = parse_arg_list(["skbd", "--config"]).unwrap_err();
         assert!(config.contains("--config needs a value"), "{config}");
-        let default = parse_arg_list(["sway-lang", "--default"]).unwrap_err();
+        let default = parse_arg_list(["skbd", "--default"]).unwrap_err();
         assert!(default.contains("--default needs a value"), "{default}");
     }
 
     #[test]
     fn config_and_default_flags_are_kept() {
         let Parsed::Run(options) = parse_arg_list([
-            "sway-lang",
+            "skbd",
             "--verbose",
             "--config",
             "dir/config.toml",
@@ -1150,7 +1150,7 @@ mod tests {
         let first = lock_runtime_dir(&dir).unwrap();
         assert_eq!(
             fail_text(lock_runtime_dir(&dir)),
-            "sway-lang: already running"
+            "skbd: already running"
         );
         drop(first);
         assert!(lock_runtime_dir(&dir).is_ok());
@@ -1160,7 +1160,7 @@ mod tests {
     #[test]
     fn lock_symlink_is_refused() {
         let dir = scratch("locklink");
-        let path = dir.join("sway-lang.lock");
+        let path = dir.join("skbd.lock");
         std::os::unix::fs::symlink("elsewhere", &path).unwrap();
         let err = fail_text(lock_runtime_dir(&dir));
         assert!(err.contains("cannot open"), "{err}");
@@ -1285,7 +1285,7 @@ mod tests {
     }
 
     fn scratch(name: &str) -> PathBuf {
-        let path = std::env::temp_dir().join(format!("sway-lang-{name}-{}", std::process::id()));
+        let path = std::env::temp_dir().join(format!("skbd-{name}-{}", std::process::id()));
         let _ = fs::remove_dir_all(&path);
         fs::create_dir_all(&path).unwrap();
         fs::set_permissions(&path, fs::Permissions::from_mode(0o700)).unwrap();

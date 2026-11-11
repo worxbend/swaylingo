@@ -19,7 +19,7 @@ restarts. Container ids also die with the window.
 
 ## Decision
 
-A Rust process, `sway-lang`, subscribes to `window`, `input`, and `workspace`
+A Rust process, `skbd`, subscribes to `window`, `input`, and `workspace`
 events. It stores `container id → layout index` in memory.
 
 - A layout change while a window is focused is stored on that window.

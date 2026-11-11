@@ -1,0 +1,66 @@
+# Install the skbd binary with https://github.com/worxbend/binstaller
+# This file does not install the systemd unit or the man page. Use install.sh for those.
+#
+# binstaller plan --config packaging/swaylingo.binstaller.yaml
+# binstaller apply --config packaging/swaylingo.binstaller.yaml
+#
+# Paste the SHA-256 of the asset from that release's SHA256SUMS into checksum.value
+# before you switch policy.mode to strict. A missing checksum is printed in the plan.
+
+apiVersion: binstaller.io/v1alpha1
+kind: BinaryDistributionProfile
+
+metadata:
+  name: swaylingo
+  annotations:
+    binstaller.io/description: skbd, the swaylingo keyboard-layout daemon, from GitHub releases.
+
+spec:
+  policy:
+    mode: developer
+    continueOnError: false
+    appsDir: "${HOME}/.apps"
+    allowSudoSymlinks: false
+    stateFile: swaylingo.state.json
+
+  versions:
+    swaylingo: v0.4.0
+
+  plan:
+    - name: skbd
+      kind: binary-tool
+      description: Per-window keyboard layout daemon for Sway.
+      when:
+        os:
+          family: linux
+        architecture: amd64
+      spec:
+        versionRef: swaylingo
+        installDir: "${appsDir}/swaylingo"
+        download:
+          url: "https://github.com/worxbend/sway-lang-source/releases/download/${version}/skbd-linux-amd64"
+          filename: skbd
+        executables:
+          - path: bin/skbd
+        symlinks:
+          - path: "${HOME}/.local/bin/skbd"
+            target: "${appsDir}/swaylingo/bin/skbd"
+
+    - name: skbd
+      kind: binary-tool
+      description: Per-window keyboard layout daemon for Sway.
+      when:
+        os:
+          family: linux
+        architecture: arm64
+      spec:
+        versionRef: swaylingo
+        installDir: "${appsDir}/swaylingo"
+        download:
+          url: "https://github.com/worxbend/sway-lang-source/releases/download/${version}/skbd-linux-arm64"
+          filename: skbd
+        executables:
+          - path: bin/skbd
+        symlinks:
+          - path: "${HOME}/.local/bin/skbd"
+            target: "${appsDir}/swaylingo/bin/skbd"

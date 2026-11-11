@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Install sway-lang from GitHub releases and write the systemd user unit.
+# Install skbd from GitHub releases and write the systemd user unit.
 #
-# The binary lands in ~/.local/bin/sway-lang. The unit is
-# $XDG_CONFIG_HOME/systemd/user/sway-lang.service when that variable is an
-# absolute path, or ~/.config/systemd/user/sway-lang.service when it is
+# The binary lands in ~/.local/bin/skbd. The unit is
+# $XDG_CONFIG_HOME/systemd/user/skbd.service when that variable is an
+# absolute path, or ~/.config/systemd/user/skbd.service when it is
 # unset, empty, or not absolute. The unit directory must stay inside the
 # passwd home.
-# The man page is ~/.local/share/man/man1/sway-lang.1. The service is not enabled:
+# The man page is ~/.local/share/man/man1/skbd.1. The service is not enabled:
 # SWAYSOCK contains Sway's pid, so start it only after Sway is up.
 #
 # Usage: install.sh [latest|vX.Y.Z]
@@ -27,14 +27,14 @@ Usage: install.sh [latest|vX.Y.Z]
 Download the Linux binary for this machine from the GitHub release,
 check SHA256SUMS, and install:
 
-  ~/.local/bin/sway-lang
-  ${XDG_CONFIG_HOME:-~/.config}/systemd/user/sway-lang.service
-  ~/.local/share/man/man1/sway-lang.1
+  ~/.local/bin/skbd
+  ${XDG_CONFIG_HOME:-~/.config}/systemd/user/skbd.service
+  ~/.local/share/man/man1/skbd.1
 
 The unit is not enabled. After Sway is running:
 
   systemctl --user import-environment SWAYSOCK
-  systemctl --user restart sway-lang.service
+  systemctl --user restart skbd.service
 
 Exit codes: 0 installed, 1 failure, 2 bad arguments.
 EOF
@@ -51,10 +51,10 @@ asset_for() {
   local machine=$1
   case "$machine" in
     x86_64)
-      printf '%s\n' sway-lang-linux-amd64
+      printf '%s\n' skbd-linux-amd64
       ;;
     aarch64 | arm64)
-      printf '%s\n' sway-lang-linux-arm64
+      printf '%s\n' skbd-linux-arm64
       ;;
     *)
       printf 'unsupported machine: %s\n' "$machine" >&2
@@ -151,7 +151,7 @@ canonical_unit_dir() {
 }
 
 # keep_release_sums SUMS ASSET INCLUDE_MAN DEST
-# INCLUDE_MAN is 1 when sway-lang.1 was downloaded into the temp dir.
+# INCLUDE_MAN is 1 when skbd.1 was downloaded into the temp dir.
 # The dest file has one line per kept name. A missing binary line fails.
 keep_release_sums() {
   local sums=$1
@@ -181,14 +181,14 @@ keep_release_sums() {
     fi
     name=$rest
     base=${name##*/}
-    if [[ "$base" != "$asset" && ( "$include_man" != 1 || "$base" != "sway-lang.1" ) ]]; then
+    if [[ "$base" != "$asset" && ( "$include_man" != 1 || "$base" != "skbd.1" ) ]]; then
       continue
     fi
     printf '%s  %s\n' "$hex" "$base" >>"$dest"
     if [[ "$base" == "$asset" ]]; then
       found_asset=1
     fi
-    if [[ "$base" == "sway-lang.1" ]]; then
+    if [[ "$base" == "skbd.1" ]]; then
       found_man=1
     fi
   done <"$sums"
@@ -197,7 +197,7 @@ keep_release_sums() {
     return 1
   fi
   if [[ "$include_man" == 1 && "$found_man" -ne 1 ]]; then
-    printf 'SHA256SUMS has no line for sway-lang.1\n' >&2
+    printf 'SHA256SUMS has no line for skbd.1\n' >&2
     return 1
   fi
 }
@@ -261,7 +261,7 @@ StartLimitBurst=5
 Type=simple
 # SWAYSOCK contains Sway's pid. Import it after Sway starts, then restart
 # this service. A copy started at login, before that import, cannot see Sway.
-ExecStart=%h/.local/bin/sway-lang
+ExecStart=%h/.local/bin/skbd
 Restart=on-failure
 RestartSec=2
 RestartPreventExitStatus=2
@@ -287,20 +287,20 @@ install_release() {
     --retry 3 --retry-delay 2 --output "${tmp}/SHA256SUMS" -- "$sums_url"
 
   script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-  man_src="${script_dir}/man/sway-lang.1"
+  man_src="${script_dir}/man/skbd.1"
   if [[ -f "$man_src" ]]; then
-    cp -- "$man_src" "${tmp}/sway-lang.1"
+    cp -- "$man_src" "${tmp}/skbd.1"
   else
-    man_url=$(release_url "$tag" "sway-lang.1")
+    man_url=$(release_url "$tag" "skbd.1")
     printf 'downloading %s\n' "$man_url"
     curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
-      --retry 3 --retry-delay 2 --output "${tmp}/sway-lang.1" -- "$man_url"
+      --retry 3 --retry-delay 2 --output "${tmp}/skbd.1" -- "$man_url"
   fi
-  man_src="${tmp}/sway-lang.1"
+  man_src="${tmp}/skbd.1"
   include_man=1
 
   asc_url=$(release_url "$tag" "SHA256SUMS.asc")
-  pubkey="${script_dir}/install/sway-lang.asc.pub"
+  pubkey="${script_dir}/install/skbd.asc.pub"
   # 404 is "not published yet". download_asc exits on any other HTTP failure.
   download_asc "$asc_url" "${tmp}/SHA256SUMS.asc" || true
   check_release_files "$tmp" "$asset" "$include_man"
@@ -316,10 +316,10 @@ install_release() {
     canonical_unit_dir "$passwd_home" "$(config_home_for "${XDG_CONFIG_HOME:-}" "$HOME")"
   ) || die "refusing unit directory outside the home directory"
   mkdir -p -- "$bindir" "$mandir"
-  install -m 755 -- "${tmp}/${asset}" "${bindir}/sway-lang"
-  write_unit "${tmp}/sway-lang.service"
-  install -m 644 -- "${tmp}/sway-lang.service" "${unitdir}/sway-lang.service"
-  install -m 644 -- "$man_src" "${mandir}/sway-lang.1"
+  install -m 755 -- "${tmp}/${asset}" "${bindir}/skbd"
+  write_unit "${tmp}/skbd.service"
+  install -m 644 -- "${tmp}/skbd.service" "${unitdir}/skbd.service"
+  install -m 644 -- "$man_src" "${mandir}/skbd.1"
 
   if command -v systemctl >/dev/null 2>&1 && [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
     systemctl --user daemon-reload
@@ -327,12 +327,12 @@ install_release() {
     printf 'user systemd is not available in this shell. After you log in, run: systemctl --user daemon-reload\n'
   fi
 
-  printf 'installed %s\n' "${bindir}/sway-lang"
-  printf 'installed %s\n' "${unitdir}/sway-lang.service"
-  printf 'installed %s\n' "${mandir}/sway-lang.1"
+  printf 'installed %s\n' "${bindir}/skbd"
+  printf 'installed %s\n' "${unitdir}/skbd.service"
+  printf 'installed %s\n' "${mandir}/skbd.1"
   printf 'The service is not started. After Sway is up:\n'
   printf '  systemctl --user import-environment SWAYSOCK\n'
-  printf '  systemctl --user restart sway-lang.service\n'
+  printf '  systemctl --user restart skbd.service\n'
 }
 
 main() {
@@ -343,10 +343,10 @@ main() {
       exit 0
       ;;
     --self-check)
-      [[ -f "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/man/sway-lang.1" ]]
-      [[ "$(asset_for x86_64)" == "sway-lang-linux-amd64" ]]
-      [[ "$(asset_for aarch64)" == "sway-lang-linux-arm64" ]]
-      [[ "$(asset_for arm64)" == "sway-lang-linux-arm64" ]]
+      [[ -f "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/man/skbd.1" ]]
+      [[ "$(asset_for x86_64)" == "skbd-linux-amd64" ]]
+      [[ "$(asset_for aarch64)" == "skbd-linux-arm64" ]]
+      [[ "$(asset_for arm64)" == "skbd-linux-arm64" ]]
       [[ "$(normalize_tag latest)" == "latest" ]]
       [[ "$(normalize_tag 0.1.0)" == "v0.1.0" ]]
       [[ "$(normalize_tag v0.1.0)" == "v0.1.0" ]]
@@ -396,13 +396,13 @@ main() {
 self_check_sums() {
   local tmp asset
   tmp=$(mktemp -d)
-  asset=sway-lang-linux-amd64
+  asset=skbd-linux-amd64
   printf 'one\n' >"${tmp}/${asset}"
-  printf 'man\n' >"${tmp}/sway-lang.1"
-  printf 'other\n' >"${tmp}/sway-lang-linux-arm64"
+  printf 'man\n' >"${tmp}/skbd.1"
+  printf 'other\n' >"${tmp}/skbd-linux-arm64"
   (
     cd -- "$tmp"
-    sha256sum "$asset" sway-lang.1 sway-lang-linux-arm64 >SHA256SUMS
+    sha256sum "$asset" skbd.1 skbd-linux-arm64 >SHA256SUMS
   )
   keep_release_sums "${tmp}/SHA256SUMS" "$asset" 1 "${tmp}/checked"
   [[ "$(wc -l <"${tmp}/checked")" -eq 2 ]]
@@ -417,7 +417,7 @@ self_check_sums() {
   keep_release_sums "${tmp}/SHA256SUMS" "$asset" 0 "${tmp}/binary-only"
   [[ "$(wc -l <"${tmp}/binary-only")" -eq 1 ]]
   grep -q -- "$asset" "${tmp}/binary-only"
-  if grep -q -- 'sway-lang.1' "${tmp}/binary-only"; then
+  if grep -q -- 'skbd.1' "${tmp}/binary-only"; then
     rm -rf -- "$tmp"
     exit 1
   fi

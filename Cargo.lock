@@ -113,16 +113,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sway-lang"
-version = "0.3.0"
-dependencies = [
- "libc",
- "serde_json",
- "swayipc",
- "toml",
-]
-
-[[package]]
 name = "swayipc"
 version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -142,6 +132,16 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "swaylingo"
+version = "0.4.0"
+dependencies = [
+ "libc",
+ "serde_json",
+ "swayipc",
+ "toml",
 ]
 
 [[package]]

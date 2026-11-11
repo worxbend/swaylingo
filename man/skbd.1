@@ -1,8 +1,8 @@
-.TH SWAY-LANG 1 "2026-11-11" "sway-lang 0.3.0" "User Commands"
+.TH SKBD 1 "2026-11-11" "swaylingo 0.4.0" "User Commands"
 .SH NAME
-sway-lang \- remember the Sway keyboard layout for each window
+skbd \- remember the Sway keyboard layout for each window
 .SH SYNOPSIS
-.B sway-lang
+.B skbd
 [\fB\-h\fR]
 [\fB\-\-help\fR]
 [\fB\-\-version\fR]
@@ -10,7 +10,7 @@ sway-lang \- remember the Sway keyboard layout for each window
 [\fB\-\-config\fR \fIPATH\fR]
 [\fB\-\-default\fR \fITOKEN\fR]
 .SH DESCRIPTION
-.B sway-lang
+.B skbd
 watches Sway window focus and puts back the XKB layout that window last used.
 Sway still owns the keymap. This program only runs
 .BR xkb_switch_layout .
@@ -58,12 +58,12 @@ and exits 2.
 Help and version go to stdout and exit 0.
 .SH FILES
 .TP
-.I $XDG_CONFIG_HOME/sway-lang/config.toml
+.I $XDG_CONFIG_HOME/swaylingo/config.toml
 Config file when
 .B XDG_CONFIG_HOME
 is set and not empty.
 .TP
-.I ~/.config/sway-lang/config.toml
+.I ~/.config/swaylingo/config.toml
 Config file when
 .B XDG_CONFIG_HOME
 is unset or empty.
@@ -72,7 +72,7 @@ A missing file at the default path is an empty config, not an error.
 .I config.example.toml
 Example shipped with the source. It is not installed.
 .TP
-.I ~/.local/share/man/man1/sway-lang.1
+.I ~/.local/share/man/man1/skbd.1
 This page, installed by
 .BR install.sh .
 .SH CONFIGURATION
@@ -143,7 +143,7 @@ Polish, and
 .B fr
 French.
 .PP
-If nothing matches, sway-lang exits 2 and lists the index and name of each
+If nothing matches, skbd exits 2 and lists the index and name of each
 known layout. A parse error names the file.
 .SH SIGNALS
 .TP

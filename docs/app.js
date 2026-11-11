@@ -6,8 +6,8 @@ const state = {
   nextId: 3,
   focused: 1,
   windows: [
-    { id: 1, name: "Notes", layout: 0 },
-    { id: 2, name: "Mail", layout: 1 },
+    { id: 1, name: "Firefox", layout: 0 },
+    { id: 2, name: "Telegram", layout: 1 },
   ],
 };
 
@@ -78,7 +78,7 @@ keyUa.addEventListener("click", () => setLayout(1));
 document.querySelector("#spawn").addEventListener("click", () => {
   const id = state.nextId;
   state.nextId += 1;
-  state.windows.push({ id, name: "New", layout: 0 });
+  state.windows.push({ id, name: "Alacritty", layout: 0 });
   state.focused = id;
   paint();
 });

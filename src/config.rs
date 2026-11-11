@@ -49,7 +49,7 @@ impl ConfigFile {
     }
 }
 
-/// `$XDG_CONFIG_HOME/sway-lang/config.toml`, or `~/.config/sway-lang/config.toml`.
+/// `$XDG_CONFIG_HOME/swaylingo/config.toml`, or `~/.config/swaylingo/config.toml`.
 pub fn default_path() -> Result<PathBuf, String> {
     let xdg = env::var_os("XDG_CONFIG_HOME");
     let home = env::var_os("HOME");
@@ -58,12 +58,12 @@ pub fn default_path() -> Result<PathBuf, String> {
 
 pub fn config_path(xdg: Option<&OsStr>, home: Option<&OsStr>) -> Result<PathBuf, String> {
     if let Some(xdg) = xdg.filter(|xdg| !xdg.is_empty()) {
-        return Ok(PathBuf::from(xdg).join("sway-lang").join("config.toml"));
+        return Ok(PathBuf::from(xdg).join("swaylingo").join("config.toml"));
     }
     let home = home.ok_or_else(|| "HOME is not set".to_string())?;
     Ok(PathBuf::from(home)
         .join(".config")
-        .join("sway-lang")
+        .join("swaylingo")
         .join("config.toml"))
 }
 
@@ -318,26 +318,26 @@ mod tests {
 
     #[test]
     fn bad_token_error_includes_the_known_layout_name() {
-        let config = parse_config("fallback = \"zz\"\n", Path::new("sway-lang.toml")).unwrap();
+        let config = parse_config("fallback = \"zz\"\n", Path::new("skbd.toml")).unwrap();
         let err = resolve_rules(
             &config,
             &names(),
             &RuleSource {
-                fallback_label: "sway-lang.toml",
-                apps_label: "sway-lang.toml",
+                fallback_label: "skbd.toml",
+                apps_label: "skbd.toml",
             },
         )
         .unwrap_err();
 
-        assert!(err.contains("sway-lang.toml"), "{err}");
+        assert!(err.contains("skbd.toml"), "{err}");
         assert!(err.contains("0 English (US)"), "{err}");
         assert!(err.contains("1 Ukrainian"), "{err}");
     }
 
     #[test]
     fn parse_error_names_the_file() {
-        let err = parse_config("fallback = [\n", Path::new("/tmp/sway-lang.toml")).unwrap_err();
-        assert!(err.contains("/tmp/sway-lang.toml"), "{err}");
+        let err = parse_config("fallback = [\n", Path::new("/tmp/skbd.toml")).unwrap_err();
+        assert!(err.contains("/tmp/skbd.toml"), "{err}");
     }
 
     #[test]
@@ -456,7 +456,7 @@ mod tests {
 
     #[test]
     fn missing_explicit_config_names_the_path() {
-        let path = std::env::temp_dir().join(format!("sway-lang-missing-{}", std::process::id()));
+        let path = std::env::temp_dir().join(format!("skbd-missing-{}", std::process::id()));
         let _ = fs::remove_file(&path);
         let err = load_required(&path).unwrap_err();
         assert!(err.contains(&path.display().to_string()), "{err}");
@@ -465,7 +465,7 @@ mod tests {
 
     #[test]
     fn missing_default_path_is_an_empty_config() {
-        let path = std::env::temp_dir().join(format!("sway-lang-absent-{}", std::process::id()));
+        let path = std::env::temp_dir().join(format!("skbd-absent-{}", std::process::id()));
         let _ = fs::remove_file(&path);
         let config = load_optional(&path).unwrap();
         assert_eq!(config.fallback, None);
@@ -475,16 +475,16 @@ mod tests {
     #[test]
     fn config_path_uses_xdg_then_home() {
         let xdg = config_path(Some(OsStr::new("/xdg")), Some(OsStr::new("/home/me"))).unwrap();
-        assert_eq!(xdg, PathBuf::from("/xdg/sway-lang/config.toml"));
+        assert_eq!(xdg, PathBuf::from("/xdg/swaylingo/config.toml"));
         let home = config_path(None, Some(OsStr::new("/home/me"))).unwrap();
         assert_eq!(
             home,
-            PathBuf::from("/home/me/.config/sway-lang/config.toml")
+            PathBuf::from("/home/me/.config/swaylingo/config.toml")
         );
         let empty = config_path(Some(OsStr::new("")), Some(OsStr::new("/home/me"))).unwrap();
         assert_eq!(
             empty,
-            PathBuf::from("/home/me/.config/sway-lang/config.toml")
+            PathBuf::from("/home/me/.config/swaylingo/config.toml")
         );
         assert!(config_path(None, None).unwrap_err().contains("HOME"));
     }
