@@ -6,85 +6,135 @@
     <title>sway-lang</title>
     <meta
       name="description"
-      content="A Sway daemon that gives each window its own keyboard layout. New windows and empty workspaces start on the first layout."
+      content="A Sway daemon that keeps a keyboard layout on each window. New windows and empty workspaces start on layout 0."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Besley:opsz,wght@12..72,520;12..72,650&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700&family=Besley:opsz,wght@12..72,520;12..72,650&family=DM+Mono:ital,wght@0,400;0,500&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <header class="hero">
-      <div class="intro">
-        <h1>sway-lang</h1>
-        <p class="lede">
-          Each Sway window keeps the keyboard layout you last used there.
-          Come back, and the keys are already in that language.
-        </p>
-        <p>
-          A new window starts on the first layout in your Sway config. An empty
-          workspace does too. For <code>us,ua</code>, that first layout is English.
-        </p>
-        <p><a href="install.html">Install on Linux</a></p>
-      </div>
-      <div class="desk" id="desk">
-        <div class="windows" id="windows" role="group" aria-label="Windows"></div>
-        <div class="keys" role="group" aria-label="Keyboard layout">
-          <button type="button" class="key" id="key-en" data-index="0">
-            <span class="lamp" aria-hidden="true"></span>
-            <span class="legend">en</span>
-            <span class="hint">us</span>
-          </button>
-          <button type="button" class="key" id="key-ua" data-index="1">
-            <span class="lamp" aria-hidden="true"></span>
-            <span class="legend">ук</span>
-            <span class="hint">ua</span>
-          </button>
-        </div>
-        <p class="now" id="now" aria-live="polite"></p>
-        <div class="row">
-          <button type="button" id="spawn">Open a new window</button>
-          <button type="button" id="empty">Show an empty workspace</button>
-        </div>
-      </div>
+    <a class="skip" href="#demo">Skip to the desk</a>
+    <header class="bar">
+      <a class="mark" href="index.html">sway-lang</a>
+      <nav aria-label="Site">
+        <a href="#overview">Overview</a>
+        <a href="install.html">Install</a>
+        <a href="https://github.com/worxbend/sway-lang-source">Source</a>
+      </nav>
     </header>
 
-    <main>
-      <section>
-        <h2>What you see</h2>
-        <p>
-          Focus a window in the desk above. Its key lights. Press the other key
-          and only that window changes. Leave for the empty workspace and the
-          keyboard returns to English. The window you left still remembers
-          Ukrainian.
-        </p>
+    <div class="sheet">
+      <section class="hero">
+        <div>
+          <p class="kicker">Linux · Sway · one layout per window</p>
+          <h1>The layout stays with the window.</h1>
+          <p class="lede">
+            Type Ukrainian in one window. Jump to another. Come back, and the
+            keys are already Ukrainian. Sway still owns the keymap. This daemon
+            only remembers.
+          </p>
+          <p class="actions">
+            <a href="install.html">Install the release</a>
+            <a href="#overview">Read the overview</a>
+          </p>
+        </div>
+
+        <div class="machine" id="desk">
+          <div class="windows" id="windows" role="group" aria-label="Windows"></div>
+          <div class="keys" id="demo" role="group" aria-label="Keyboard layout">
+            <button type="button" class="key" id="key-en">
+              <span class="lamp" aria-hidden="true"></span>
+              <span class="legend">en</span>
+              <span class="hint">us</span>
+            </button>
+            <button type="button" class="key" id="key-ua">
+              <span class="lamp" aria-hidden="true"></span>
+              <span class="legend">ук</span>
+              <span class="hint">ua</span>
+            </button>
+          </div>
+          <p class="now" id="now" aria-live="polite"></p>
+          <div class="row">
+            <button type="button" id="spawn">Open a new window</button>
+            <button type="button" id="empty">Empty workspace</button>
+          </div>
+        </div>
       </section>
-      <section>
-        <h2>What the daemon does</h2>
+
+      <section class="overview" id="overview">
+        <h2>Overview</h2>
         <p>
-          Sway owns the keymap. You keep <code>xkb_layout</code> and Super+Space.
-          sway-lang listens on the Sway socket and, when focus moves, runs
-          <code>xkb_switch_layout</code> for <code>type:keyboard</code>.
+          sway-lang is a small Linux daemon for Sway. It watches focus and the
+          active XKB layout. With <code>xkb_layout us,ua</code>, index 0 is
+          English and index 1 is Ukrainian. Super+Space still switches. The
+          daemon puts the saved index back when a window gains focus.
         </p>
-        <ol>
-          <li>You change the layout. The focused window stores that index.</li>
-          <li>You focus a window you have used. Its index comes back.</li>
-          <li>You focus a new window, or no window at all. Index 0 comes back.</li>
+        <ol class="rules">
+          <li>
+            <span>01</span>
+            <div>
+              <h3>A used window comes back as you left it.</h3>
+              <p>
+                Notes on Ukrainian, mail on English. Focus notes again and the
+                keyboard is Ukrainian. No extra key.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span>02</span>
+            <div>
+              <h3>A new window starts on layout 0.</h3>
+              <p>
+                Open a terminal beside a Ukrainian window. The new one starts
+                in English, the first name in your <code>xkb_layout</code> list.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span>03</span>
+            <div>
+              <h3>An empty workspace is layout 0 too.</h3>
+              <p>
+                Switch to a workspace with nothing focused and the keyboard
+                returns to English. The window you left still remembers
+                Ukrainian.
+              </p>
+            </div>
+          </li>
         </ol>
+        <div class="limits">
+          <div>
+            <h3>Not per tab.</h3>
+            <p>Firefox is one Sway window. Its tabs share a layout.</p>
+          </div>
+          <div>
+            <h3>Not an input method.</h3>
+            <p>English and Ukrainian here are XKB layouts, not fcitx or ibus.</p>
+          </div>
+          <div>
+            <h3>Not saved to disk.</h3>
+            <p>Window ids die when Sway exits. The map starts empty next time.</p>
+          </div>
+        </div>
       </section>
-      <section>
-        <h2>Install</h2>
-        <p>
-          The <a href="install.html">installation guide</a> covers the release
-          binary, the systemd user unit, and the <code>SWAYSOCK</code> import.
-          The short form is <code>./install.sh</code>, then, after Sway is up,
-          import <code>SWAYSOCK</code> and restart the service.
-        </p>
+
+      <section class="install-strip">
+        <div>
+          <h2>Install</h2>
+          <p>
+            Linux amd64 and arm64. The script checks the checksum, copies the
+            binary to <code>~/.local/bin</code>, and writes a user unit. It
+            does not start the service. <code>SWAYSOCK</code> has to exist
+            first.
+          </p>
+        </div>
+        <p class="actions"><a href="install.html">Open the install guide</a></p>
       </section>
-    </main>
+    </div>
     <script src="app.js"></script>
   </body>
 </html>

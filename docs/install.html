@@ -11,15 +11,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Besley:opsz,wght@12..72,520;12..72,650&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700&family=Besley:opsz,wght@12..72,520;12..72,650&family=DM+Mono:ital,wght@0,400;0,500&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body class="page">
-    <nav class="top">
-      <a href="index.html">sway-lang</a>
-    </nav>
+    <header class="bar">
+      <a class="mark" href="index.html">sway-lang</a>
+      <nav aria-label="Site">
+        <a href="index.html">Overview</a>
+        <a href="install.html" aria-current="page">Install</a>
+        <a href="https://github.com/worxbend/sway-lang-source">Source</a>
+      </nav>
+    </header>
+    <div class="sheet">
     <h1>Install</h1>
     <p class="lede">
       Linux on amd64 or arm64. Sway is already running. You install a release
@@ -162,5 +168,6 @@ cargo build --release
         <code>install.sh</code> when you want the release and the unit.
       </p>
     </section>
+    </div>
   </body>
 </html>
