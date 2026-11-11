@@ -1,22 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img">
-  <title>Firefox is focused in English. Telegram still remembers Ukrainian.</title>
-  <rect width="1280" height="720" fill="#1c1712"/>
-  <rect x="80" y="56" width="520" height="340" fill="#14110e" stroke="#9ec4d6" stroke-width="3"/>
-  <text x="116" y="104" fill="#9ec4d6" font-family="DejaVu Sans Mono" font-size="16" letter-spacing="2.6">focused</text>
-  <text x="116" y="214" fill="#f6f1e7" font-family="DejaVu Serif" font-size="64">Firefox</text>
-  <text x="116" y="286" fill="#b3a794" font-family="DejaVu Sans Mono" font-size="28">en</text>
-  <rect x="680" y="56" width="520" height="340" fill="#14110e" stroke="#3d342b" stroke-width="3"/>
-  <text x="716" y="214" fill="#f6f1e7" font-family="DejaVu Serif" font-size="64">Telegram</text>
-  <text x="716" y="286" fill="#b3a794" font-family="DejaVu Sans Mono" font-size="28">ук</text>
-  <rect x="450" y="454" width="176" height="158" rx="14" fill="#b7a078"/>
-  <rect x="450" y="454" width="176" height="142" rx="14" fill="#f4efe6"/>
-  <circle cx="478" cy="482" r="8" fill="#e2a322"/>
-  <text x="478" y="546" fill="#221b14" font-family="DejaVu Serif" font-size="54">en</text>
-  <text x="478" y="576" fill="#6e655a" font-family="DejaVu Sans Mono" font-size="16">us</text>
-  <rect x="654" y="448" width="176" height="164" rx="14" fill="#c8beae"/>
-  <rect x="654" y="448" width="176" height="150" rx="14" fill="#f4efe6"/>
-  <circle cx="682" cy="476" r="8" fill="#d5ccbf"/>
-  <text x="682" y="540" fill="#221b14" font-family="DejaVu Serif" font-size="54">ук</text>
-  <text x="682" y="570" fill="#6e655a" font-family="DejaVu Sans Mono" font-size="16">ua</text>
-  <text x="640" y="676" fill="#b3a794" font-family="DejaVu Sans Mono" font-size="20" text-anchor="middle">Firefox is English.</text>
+<title>Firefox is focused in English. Telegram still remembers Ukrainian.</title>
+<rect width="1280" height="720" fill="#1c1712"/>
+<rect x="84" y="48" width="500" height="392" fill="#14110e" stroke="#9ec4d6" stroke-width="3"/>
+<rect x="87" y="51" width="494" height="53" fill="#2a241e"/>
+<circle cx="112" cy="76.0" r="4.5" fill="#5c5146"/>
+<circle cx="128" cy="76.0" r="4.5" fill="#5c5146"/>
+<circle cx="144" cy="76.0" r="4.5" fill="#e2a322"/>
+<rect x="488" y="60.0" width="76" height="32" rx="16" fill="#e2a322"/>
+<text x="526.0" y="82.0" fill="#221b14" font-family="DejaVu Sans Mono" font-size="18" text-anchor="middle">en</text>
+<text x="120" y="216" fill="#f6f1e7" font-family="DejaVu Serif" font-size="56">Firefox</text>
+<rect x="120" y="254" width="300" height="12" fill="#5c5146"/>
+<rect x="120" y="286" width="240" height="12" fill="#5c5146"/>
+<rect x="120" y="318" width="180" height="12" fill="#5c5146"/>
+<rect x="120" y="350" width="260" height="12" fill="#5c5146"/>
+<rect x="696" y="48" width="500" height="392" fill="#14110e" stroke="#6a5e52" stroke-width="2"/>
+<rect x="698" y="50" width="496" height="54" fill="#2a241e"/>
+<circle cx="724" cy="76.0" r="4.5" fill="#5c5146"/>
+<circle cx="740" cy="76.0" r="4.5" fill="#5c5146"/>
+<circle cx="756" cy="76.0" r="4.5" fill="#5c5146"/>
+<rect x="1100" y="60.0" width="76" height="32" rx="16" fill="none" stroke="#5c5146" stroke-width="2"/>
+<text x="1138.0" y="82.0" fill="#b3a794" font-family="DejaVu Sans Mono" font-size="18" text-anchor="middle">ua</text>
+<text x="732" y="216" fill="#f6f1e7" font-family="DejaVu Serif" font-size="56">Telegram</text>
+<rect x="910" y="252" width="250" height="36" rx="18" fill="#e7dcc8"/>
+<rect x="732" y="304" width="210" height="36" rx="18" fill="#4a4036"/>
+<rect x="992" y="356" width="168" height="36" rx="18" fill="#e7dcc8"/>
+<line x1="334.0" y1="442" x2="334.0" y2="542" stroke="#e2a322" stroke-width="4" stroke-linecap="butt"/>
+<rect x="87.0" y="536" width="86" height="112" rx="12" fill="#c8beae"/>
+<rect x="87.0" y="536" width="86" height="98" rx="12" fill="#f4efe6"/>
+<rect x="189.0" y="536" width="86" height="112" rx="12" fill="#c8beae"/>
+<rect x="189.0" y="536" width="86" height="98" rx="12" fill="#f4efe6"/>
+<rect x="291.0" y="542" width="86" height="106" rx="12" fill="#a87412"/>
+<rect x="291.0" y="542" width="86" height="92" rx="12" fill="#f4efe6"/>
+<circle cx="311.0" cy="562" r="7" fill="#e2a322"/>
+<text x="311.0" y="604" fill="#221b14" font-family="DejaVu Serif" font-size="32">en</text>
+<text x="311.0" y="622" fill="#6e655a" font-family="DejaVu Sans Mono" font-size="13">us</text>
+<rect x="393.0" y="536" width="86" height="112" rx="12" fill="#c8beae"/>
+<rect x="393.0" y="536" width="86" height="98" rx="12" fill="#f4efe6"/>
+<rect x="495.0" y="536" width="86" height="112" rx="12" fill="#c8beae"/>
+<rect x="495.0" y="536" width="86" height="98" rx="12" fill="#f4efe6"/>
+<rect x="597.0" y="536" width="86" height="112" rx="12" fill="#c8beae"/>
+<rect x="597.0" y="536" width="86" height="98" rx="12" fill="#f4efe6"/>
+<rect x="699.0" y="536" width="86" height="112" rx="12" fill="#c8beae"/>
+<rect x="699.0" y="536" width="86" height="98" rx="12" fill="#f4efe6"/>
+<rect x="801.0" y="536" width="86" height="112" rx="12" fill="#c8beae"/>
+<rect x="801.0" y="536" width="86" height="98" rx="12" fill="#f4efe6"/>
+<rect x="903.0" y="536" width="86" height="112" rx="12" fill="#c8beae"/>
+<rect x="903.0" y="536" width="86" height="98" rx="12" fill="#f4efe6"/>
+<rect x="1005.0" y="536" width="86" height="112" rx="12" fill="#c8beae"/>
+<rect x="1005.0" y="536" width="86" height="98" rx="12" fill="#f4efe6"/>
+<rect x="1107.0" y="536" width="86" height="112" rx="12" fill="#c8beae"/>
+<rect x="1107.0" y="536" width="86" height="98" rx="12" fill="#f4efe6"/>
 </svg>

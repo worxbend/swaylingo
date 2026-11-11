@@ -1,14 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img">
-  <title>swaylingo</title>
-  <rect width="1024" height="1024" fill="#1c1712"/>
-  <rect x="76" y="168" width="412" height="688" fill="#14110e" stroke="#9ec4d6" stroke-width="28"/>
-  <rect x="132" y="260" width="248" height="32" fill="#4a4036"/>
-  <rect x="132" y="320" width="176" height="32" fill="#4a4036"/>
-  <rect x="148" y="612" width="268" height="168" rx="22" fill="#a87412"/>
-  <rect x="148" y="600" width="268" height="156" rx="22" fill="#e2a322"/>
-  <rect x="536" y="168" width="412" height="688" fill="#14110e" stroke="#6e655a" stroke-width="28"/>
-  <rect x="620" y="292" width="260" height="40" fill="#2c261f"/>
-  <rect x="668" y="360" width="212" height="40" fill="#2c261f"/>
-  <rect x="608" y="624" width="268" height="168" rx="22" fill="#c8beae"/>
-  <rect x="608" y="612" width="268" height="156" rx="22" fill="#f4efe6"/>
+<title>swaylingo</title>
+<rect width="1024" height="1024" fill="#1c1712"/>
+<rect x="400" y="56" width="540" height="470" fill="#14110e" stroke="#8a7b6a" stroke-width="26"/>
+<circle cx="460" cy="116" r="14" fill="#5c5146"/>
+<circle cx="504" cy="116" r="14" fill="#5c5146"/>
+<circle cx="548" cy="116" r="14" fill="#5c5146"/>
+<rect x="760" y="180" width="140" height="26" rx="13" fill="#e7dcc8"/>
+<rect x="470" y="230" width="200" height="26" rx="13" fill="#4a4036"/>
+<rect x="700" y="280" width="180" height="26" rx="13" fill="#e7dcc8"/>
+<rect x="720" y="340" width="170" height="150" rx="28" fill="#c8beae"/>
+<rect x="720" y="340" width="170" height="128" rx="28" fill="#f4efe6"/>
+<circle cx="772" cy="392" r="14" fill="#d5ccbf"/>
+<rect x="80" y="270" width="600" height="460" fill="#14110e" stroke="#9ec4d6" stroke-width="28"/>
+<circle cx="148" cy="334" r="14" fill="#5c5146"/>
+<circle cx="192" cy="334" r="14" fill="#5c5146"/>
+<circle cx="236" cy="334" r="16" fill="#e2a322"/>
+<rect x="148" y="390" width="320" height="26" fill="#4a4036"/>
+<rect x="148" y="436" width="240" height="26" fill="#4a4036"/>
+<rect x="148" y="482" width="280" height="26" fill="#4a4036"/>
+<rect x="200" y="630" width="360" height="270" rx="28" fill="#a87412"/>
+<rect x="200" y="630" width="360" height="248" rx="28" fill="#f4efe6"/>
+<circle cx="252" cy="682" r="28" fill="#e2a322"/>
 </svg>
