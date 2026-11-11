@@ -59,12 +59,22 @@
         is a user service.
       </p>
       <pre><code>./install.sh
-./install.sh v0.1.2</code></pre>
+./install.sh v0.2.0</code></pre>
       <p>From the release asset, without a clone:</p>
       <pre><code>curl --fail --location --proto '=https' --tlsv1.2 \
   --output install.sh \
   https://github.com/worxbend/sway-lang-source/releases/latest/download/install.sh
+curl --fail --location --proto '=https' --tlsv1.2 \
+  --output install.sh.sha256 \
+  https://raw.githubusercontent.com/worxbend/sway-lang-source/main/install/install.sh.sha256
+sha256sum --check --strict install.sh.sha256
 bash install.sh</code></pre>
+      <p>
+        Check <code>install.sh</code> against that git digest before you run it.
+        Release assets are not signed until a maintainer publishes
+        <code>SHA256SUMS.asc</code>. Until then, the script checks
+        <code>SHA256SUMS</code> and continues.
+      </p>
       <p>The script picks the asset for this machine.</p>
       <table>
         <thead>
@@ -86,8 +96,9 @@ bash install.sh</code></pre>
       </table>
       <p>
         It checks <code>SHA256SUMS</code> before it copies anything. Then it
-        writes <code>~/.local/bin/sway-lang</code> and
-        <code>~/.config/systemd/user/sway-lang.service</code>, and runs
+        writes <code>~/.local/bin/sway-lang</code>,
+        <code>${XDG_CONFIG_HOME:-~/.config}/systemd/user/sway-lang.service</code>, and
+        <code>~/.local/share/man/man1/sway-lang.1</code>, and runs
         <code>systemctl --user daemon-reload</code> when a user session is
         available. It does not enable the service and it does not start it.
       </p>
@@ -96,6 +107,18 @@ bash install.sh</code></pre>
         run <code>sway-lang</code> from a shell. The unit uses the full path, so
         systemd does not need that.
       </p>
+      <p>
+        A config file is optional. sway-lang reads <code>--config</code>, or
+        <code>$XDG_CONFIG_HOME/sway-lang/config.toml</code>, or
+        <code>~/.config/sway-lang/config.toml</code>. A missing file at the
+        default path is an empty config, so new windows and an empty workspace
+        stay on layout 0. <code>fallback</code> and <code>--default</code> set
+        that layout. Each key under <code>[apps]</code> is a Wayland
+        <code>app_id</code> or an X11 <code>WM_CLASS</code>, and the value is a
+        layout index, the layout's exact name, or a short code such as
+        <code>us</code> or <code>ua</code>. <code>config.example.toml</code> is
+        the sample. The same rules are in <code>man sway-lang</code>.
+      </p>
     </section>
 
     <section>
@@ -103,7 +126,9 @@ bash install.sh</code></pre>
       <p>
         <code>SWAYSOCK</code> contains Sway’s pid. The path changes every time
         Sway starts. A service that starts at login, before that variable is
-        copied into the user manager, exits and stays down.
+        copied into the user manager, exits 0 and stays down.
+        <code>Restart=on-failure</code> does not start it again. A socket path
+        that is missing or not a socket still exits 1.
       </p>
       <p>
         In a terminal that Sway started, or any shell where
@@ -152,7 +177,7 @@ systemctl --user restart sway-lang.service</code></pre>
       <h2>Remove</h2>
       <pre><code>systemctl --user disable --now sway-lang.service
 rm -- ~/.local/bin/sway-lang
-rm -- ~/.config/systemd/user/sway-lang.service
+rm -- "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/sway-lang.service"
 systemctl --user daemon-reload</code></pre>
       <p><code>disable</code> is harmless if the unit was never enabled.</p>
     </section>

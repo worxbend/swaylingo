@@ -28,7 +28,7 @@ From a clone:
 Or pin a release:
 
 ```
-./install.sh v0.1.2
+./install.sh v0.2.0
 ```
 
 From the release asset, without a clone:
@@ -37,8 +37,14 @@ From the release asset, without a clone:
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output install.sh \
   https://github.com/worxbend/sway-lang-source/releases/latest/download/install.sh
+curl --fail --location --proto '=https' --tlsv1.2 \
+  --output install.sh.sha256 \
+  https://raw.githubusercontent.com/worxbend/sway-lang-source/main/install/install.sh.sha256
+sha256sum --check --strict install.sh.sha256
 bash install.sh
 ```
+
+Check `install.sh` against that git digest before you run it. Release assets are not signed until a maintainer publishes `SHA256SUMS.asc`. Until then, the script checks `SHA256SUMS` and continues.
 
 The script picks the asset for this machine.
 
@@ -51,16 +57,19 @@ It checks `SHA256SUMS` before it copies anything. Then it writes:
 
 ```
 ~/.local/bin/sway-lang
-~/.config/systemd/user/sway-lang.service
+${XDG_CONFIG_HOME:-~/.config}/systemd/user/sway-lang.service
+~/.local/share/man/man1/sway-lang.1
 ```
 
 and runs `systemctl --user daemon-reload` when a user session is available. It does not enable the service and it does not start it.
+
+A config file is optional. sway-lang reads `--config`, or `$XDG_CONFIG_HOME/sway-lang/config.toml`, or `~/.config/sway-lang/config.toml`. A missing file at the default path is an empty config, so new windows and an empty workspace stay on layout 0. `fallback` and `--default` set that layout. Each key under `[apps]` is a Wayland `app_id` or an X11 `WM_CLASS`, and the value is a layout index, the layout's exact name, or a short code such as `us` or `ua`. `config.example.toml` is the sample. The same rules are in `man sway-lang`.
 
 `~/.local/bin` must be on `PATH` if you want to run `sway-lang` from a shell. The unit uses the full path, so systemd does not need that.
 
 ## 3. Start it after Sway
 
-`SWAYSOCK` contains Sway’s pid. The path changes every time Sway starts. A service that starts at login, before that variable is copied into the user manager, exits and stays down.
+`SWAYSOCK` contains Sway’s pid. The path changes every time Sway starts. A service that starts at login, before that variable is copied into the user manager, exits 0 and stays down. `Restart=on-failure` does not start it again. A socket path that is missing or not a socket still exits 1.
 
 In a terminal that Sway started, or any shell where `echo "$SWAYSOCK"` prints a path:
 
@@ -100,7 +109,7 @@ The same command replaces the binary and the unit file.
 ```
 systemctl --user disable --now sway-lang.service
 rm -- ~/.local/bin/sway-lang
-rm -- ~/.config/systemd/user/sway-lang.service
+rm -- "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/sway-lang.service"
 systemctl --user daemon-reload
 ```
 

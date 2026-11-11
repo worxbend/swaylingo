@@ -76,14 +76,19 @@ Linux amd64 or arm64. Run it as your user, not root.
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output install.sh \
   https://github.com/worxbend/sway-lang-source/releases/latest/download/install.sh
+curl --fail --location --proto '=https' --tlsv1.2 \
+  --output install.sh.sha256 \
+  https://raw.githubusercontent.com/worxbend/sway-lang-source/main/install/install.sh.sha256
+sha256sum --check --strict install.sh.sha256
 bash install.sh
 ```
 
-That checks `SHA256SUMS`, then writes:
+Check `install.sh` against the digest in the git repo before you run it. That digest is not a release asset. The script then checks `SHA256SUMS`. Release assets are not signed until a maintainer publishes `SHA256SUMS.asc`. Until that file is on the release, the script keeps going after the checksum. It writes:
 
 ```text
 ~/.local/bin/sway-lang
-~/.config/systemd/user/sway-lang.service
+${XDG_CONFIG_HOME:-~/.config}/systemd/user/sway-lang.service
+~/.local/share/man/man1/sway-lang.1
 ```
 
 | Machine | Asset |
@@ -124,7 +129,7 @@ Same thing on every Sway start:
 exec_always "systemctl --user import-environment SWAYSOCK && systemctl --user restart sway-lang.service"
 ```
 
-A unit that starts at login, before that import, exits and stays down.
+A unit that starts at login, before that import, exits 0 and stays down. `Restart=on-failure` does not start it again. A socket path that is missing or not a socket still exits 1.
 
 ---
 
@@ -149,9 +154,9 @@ Stop the service before you run `~/.local/bin/sway-lang --verbose` in a terminal
 | | |
 | --- | --- |
 | 🪟 **Per window** | The layout is stored on the Sway window id, not the app. |
-| 🇬🇧 **Default is layout 0** | New windows and an empty desktop start on the first `xkb_layout`. |
+| 🇬🇧 **Default is layout 0** | New windows and an empty desktop start on the first `xkb_layout`, unless `fallback` or `--default` names another layout. |
 | ↩️ **Known windows restore** | Leave a window on Ukrainian. Come back. It is Ukrainian. |
-| 🔒 **Checksum** | `install.sh` checks `SHA256SUMS` before it copies the binary. |
+| 🔒 **Checksum** | `install.sh` checks `SHA256SUMS` before it copies the binary. Assets are not signed until a maintainer publishes `SHA256SUMS.asc`. |
 | 🐧 **Two Linux builds** | amd64 and arm64, from the `v*` release workflow. |
 | 🤫 **Quiet** | No output unless you pass `--verbose`. |
 
@@ -163,13 +168,33 @@ Stop the service before you run `~/.local/bin/sway-lang --verbose` in a terminal
 sway-lang
 sway-lang --verbose
 sway-lang --version
+sway-lang --help
+sway-lang --config PATH
+sway-lang --default TOKEN
 install.sh [latest|vX.Y.Z]
 ```
 
 | Flag | What it does |
 | --- | --- |
+| `-h`, `--help` | Print the flags and exit. |
 | `--verbose` | Print focus, layout, and switch lines. One keyboard can show up as several Sway devices, so one Super+Space prints several lines. |
-| `--version` | Print the crate version. `0.1.2` on the current release. |
+| `--version` | Print the crate version. `0.2.0` on the current release. |
+| `--config PATH` | Read this file instead of the default path. The file must exist. |
+| `--default TOKEN` | Layout for a new window with no app rule, and for an empty desktop. Overrides `fallback`. |
+
+---
+
+## 🎛️ Config
+
+No config file is required. A missing file at the default path is an empty config, and new windows still start on layout 0.
+
+The path is `--config`, else `$XDG_CONFIG_HOME/sway-lang/config.toml`, else `~/.config/sway-lang/config.toml`.
+
+`fallback` is the layout for a new window that has no app rule, and for an empty workspace. `--default` overrides it. Each key under `[apps]` is a Wayland `app_id` or an X11 `WM_CLASS`. A window you already used keeps its own layout. Quote a key that contains a dot.
+
+A value is a layout index, the layout's exact name, or a short code: `us`, `en`, `ua`, `uk`, `ru`, `de`, `pl`, `fr`. `us` and `en` mean English and prefer a name that contains `(US)`.
+
+`config.example.toml` sets Telegram and discord to `ua`, and `jetbrains-idea`, `Code`, and `code` to `us`, with `fallback` `us`. `man sway-lang` has the same rules. `install.sh` copies the page to `~/.local/share/man/man1/sway-lang.1`.
 
 ---
 
@@ -190,7 +215,7 @@ The why is in [docs/decisions/0001-layout-memory.md](docs/decisions/0001-layout-
 
 <br>
 
-The shell is outside Sway, or the user service started before Sway imported the socket.
+The shell is outside Sway, or the user service started before Sway imported the socket. A terminal run exits 1. The user service exits 0 until you import the variable, so systemd does not restart it in a loop.
 
 ```bash
 echo "$SWAYSOCK"
@@ -216,7 +241,7 @@ Also check you are not running two copies. `pgrep -a sway-lang` should show one 
 
 <br>
 
-A window seen for the first time starts on layout 0. A window you already used still restores its own layout. If a new window opens in Ukrainian, the daemon was not running, or that window id was already remembered.
+A window seen for the first time starts on layout 0, or on the app rule from the config if that app has one. A window you already used still restores its own layout. If a new window opens in Ukrainian, the daemon was not running, that window id was already remembered, or the config names that app.
 
 </details>
 
@@ -242,6 +267,7 @@ cargo build --release
 | Piece | Owns |
 | --- | --- |
 | `src/memory.rs` | Which window has which layout, and when to switch. |
+| `src/config.rs` | Config file, and layout names to indexes. |
 | `src/main.rs` | Two Sway sockets. One listens. One runs `xkb_switch_layout`. |
 | `install.sh` | Download, checksum, `~/.local/bin`, user unit. |
 | `.github/workflows/release.yml` | amd64 and arm64 binaries on `v*` tags. |

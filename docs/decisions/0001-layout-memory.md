@@ -24,8 +24,11 @@ events. It stores `container id → layout index` in memory.
 
 - A layout change while a window is focused is stored on that window.
 - Focusing a known window runs `input type:keyboard xkb_switch_layout <index>`.
-- A window seen for the first time, and a desktop with no focused view, use
-  index 0. That is the first name in `xkb_layout`. For `us,ua`, it is English.
+- A window seen for the first time uses the app rule from the config, or
+  the fallback. The fallback is index 0 when the config does not set one.
+  That is the first name in `xkb_layout`. For `us,ua`, it is English. An
+  empty desktop uses the fallback. A window already in the map keeps its
+  stored layout.
 - The window that is already focused when the daemon starts keeps the layout
   Sway is using at that moment.
 - Nothing is written to disk.
@@ -33,8 +36,9 @@ events. It stores `container id → layout index` in memory.
 Commands use a second IPC connection. `Connection::subscribe` in swayipc 4
 consumes the socket it is called on.
 
-`pending` records an index this process just requested. The matching
-`xkb_layout` event is that request coming back, not a key the person pressed.
+`pending` records every index this process requested, including one a later
+request replaced. Only those `xkb_layout` echoes are ignored. Any other index
+is a user change on the focused window, and it clears the outstanding requests.
 
 ## Alternatives considered
 

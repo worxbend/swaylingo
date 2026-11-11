@@ -6,83 +6,344 @@
 //! swayipc 4: `Connection::subscribe` consumes the socket, so commands use a
 //! second connection. https://docs.rs/swayipc/4.0.0/swayipc/struct.Connection.html
 
+mod config;
 mod memory;
 
 use std::env;
+use std::fs::{self, File, OpenOptions};
+use std::io;
+use std::os::fd::AsRawFd;
+use std::os::unix::fs::{FileTypeExt, OpenOptionsExt};
+use std::path::{Path, PathBuf};
 use std::process;
 
 use swayipc::{
     Connection, Event, EventType, Input, InputChange, Node, NodeType, WindowChange, WorkspaceChange,
 };
 
+use config::{ConfigFile, LayoutToken, RuleSource};
 use memory::{Action, Happening, Memory};
 
+const HELP: &str = "\
+Remember the Sway keyboard layout for each window.
+
+Usage: sway-lang [options]
+
+Options:
+  -h, --help           Print this help and exit
+  --version            Print the version and exit
+  --verbose            Print focus, layout, and switch lines
+  --config PATH        Config file to read
+  --default TOKEN      Layout for a new window and an empty desktop
+
+The config file is $XDG_CONFIG_HOME/sway-lang/config.toml, or
+~/.config/sway-lang/config.toml when XDG_CONFIG_HOME is unset. A missing
+file at that path is an empty config. --config requires the file to exist.
+--default overrides the fallback key.
+
+A token is a layout index, the layout's exact name, or a short code:
+us, en, ua, uk, ru, de, pl, fr. App keys are a Wayland app_id or an X11
+WM_CLASS.
+";
+
+#[derive(Debug)]
+struct Options {
+    verbose: bool,
+    config: Option<PathBuf>,
+    default_layout: Option<String>,
+}
+
+#[derive(Debug)]
+enum Parsed {
+    Run(Options),
+    Help,
+    Version,
+}
+
+#[derive(Debug)]
+enum Stop {
+    Usage(String),
+    Fail(String),
+    /// Exit 0. systemd `Restart=on-failure` must not loop when the socket
+    /// was not imported yet.
+    Idle(String),
+}
+
 fn main() {
-    let verbose = match parse_args() {
-        Ok(verbose) => verbose,
-        Err(message) => {
-            eprintln!("{message}");
-            process::exit(2);
+    if let Err(stop) = start() {
+        match stop {
+            Stop::Usage(message) => {
+                eprintln!("{message}");
+                process::exit(2);
+            }
+            Stop::Fail(message) => {
+                eprintln!("{message}");
+                process::exit(1);
+            }
+            Stop::Idle(message) => {
+                eprintln!("{message}");
+            }
         }
-    };
-    if let Err(message) = run(verbose) {
-        eprintln!("{message}");
-        process::exit(1);
     }
 }
 
-fn parse_args() -> Result<bool, String> {
+fn start() -> Result<(), Stop> {
+    match parse_args().map_err(Stop::Usage)? {
+        Parsed::Help => {
+            print!("{HELP}");
+            Ok(())
+        }
+        Parsed::Version => {
+            println!("{}", env!("CARGO_PKG_VERSION"));
+            Ok(())
+        }
+        Parsed::Run(options) => run(options),
+    }
+}
+
+fn parse_args() -> Result<Parsed, String> {
+    parse_arg_list(env::args())
+}
+
+fn parse_arg_list<I, S>(args: I) -> Result<Parsed, String>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let mut args = args.into_iter().map(|arg| arg.as_ref().to_string());
+    let _program = args.next();
     let mut verbose = false;
-    for arg in env::args().skip(1) {
+    let mut config = None;
+    let mut default_layout = None;
+    while let Some(arg) = args.next() {
         match arg.as_str() {
+            "--help" | "-h" => return Ok(Parsed::Help),
+            "--version" => return Ok(Parsed::Version),
             "--verbose" => verbose = true,
-            "--version" => {
-                println!("{}", env!("CARGO_PKG_VERSION"));
-                process::exit(0);
-            }
+            "--config" => config = Some(PathBuf::from(next_value(&mut args, "--config")?)),
+            "--default" => default_layout = Some(next_value(&mut args, "--default")?),
             other => return Err(format!("unknown argument: {other}")),
         }
     }
-    Ok(verbose)
+    Ok(Parsed::Run(Options {
+        verbose,
+        config,
+        default_layout,
+    }))
 }
 
-fn run(verbose: bool) -> Result<(), String> {
+fn next_value(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<String, String> {
+    match args.next() {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(format!("{flag} needs a value")),
+    }
+}
+
+fn run(options: Options) -> Result<(), Stop> {
+    let _instance_lock = instance_lock()?;
+    let (source_label, mut config) = read_config(&options)?;
+    let fallback_label = match options.default_layout {
+        Some(token) => {
+            config.fallback = Some(LayoutToken::Name(token));
+            "--default".to_string()
+        }
+        None => source_label.clone(),
+    };
     let mut commands = connect()?;
-    let mut memory = seed(&mut commands, verbose)?;
+    // Subscribe before seed. A layout switch during startup has to land on
+    // this socket, or the echo is gone before the loop starts.
     let events = connect()?
         .subscribe([EventType::Window, EventType::Input, EventType::Workspace])
-        .map_err(|err| err.to_string())?;
+        .map_err(|err| Stop::Fail(err.to_string()))?;
+    let loaded = LoadedConfig {
+        file: &config,
+        fallback_label: &fallback_label,
+        source_label: &source_label,
+    };
+    let mut memory = seed(&mut commands, options.verbose, &loaded)?;
     for event in events {
-        let event = event.map_err(|err| err.to_string())?;
+        let event = event.map_err(|err| Stop::Fail(err.to_string()))?;
         if matches!(event, Event::Shutdown(_)) {
             return Ok(());
         }
-        let action = react(&mut commands, &mut memory, &event, verbose)?;
-        switch_if_needed(&mut commands, &mut memory, action, verbose)?;
+        let action = react(&mut commands, &mut memory, &event, options.verbose)?;
+        switch_if_needed(&mut commands, &mut memory, action, options.verbose)?;
     }
     Ok(())
 }
 
+fn read_config(options: &Options) -> Result<(String, ConfigFile), Stop> {
+    if let Some(path) = &options.config {
+        let config = config::load_required(path).map_err(Stop::Usage)?;
+        return Ok((path.display().to_string(), config));
+    }
+    let path = config::default_path().map_err(Stop::Fail)?;
+    let config = config::load_optional(&path).map_err(Stop::Usage)?;
+    Ok((path.display().to_string(), config))
+}
+
 /// Open one Sway socket. Events and commands cannot share it: `subscribe`
 /// consumes the connection it is called on.
-fn connect() -> Result<Connection, String> {
-    if env::var_os("SWAYSOCK").is_none() {
-        return Err("SWAYSOCK is not set".to_string());
+fn connect() -> Result<Connection, Stop> {
+    let path = classify_swaysock(read_swaysock(), under_systemd())?;
+    ensure_socket(Path::new(&path))?;
+    // swayipc reads I3SOCK before SWAYSOCK. Drop I3SOCK so this process
+    // cannot attach to i3. Do not copy SWAYSOCK into I3SOCK.
+    // SAFETY: main is the only thread. Nothing else reads the environment.
+    unsafe { env::remove_var("I3SOCK") };
+    Connection::new().map_err(|err| Stop::Fail(err.to_string()))
+}
+
+enum SwaySock {
+    Missing,
+    Empty,
+    NotUtf8,
+    Path(String),
+}
+
+fn read_swaysock() -> SwaySock {
+    match env::var("SWAYSOCK") {
+        Ok(path) if path.is_empty() => SwaySock::Empty,
+        Ok(path) => SwaySock::Path(path),
+        Err(env::VarError::NotPresent) => SwaySock::Missing,
+        Err(env::VarError::NotUnicode(_)) => SwaySock::NotUtf8,
     }
-    Connection::new().map_err(|err| err.to_string())
+}
+
+/// systemd sets `INVOCATION_ID` for a service. A terminal run does not.
+fn under_systemd() -> bool {
+    env::var_os("INVOCATION_ID").is_some_and(|value| !value.is_empty())
+}
+
+fn classify_swaysock(sock: SwaySock, service: bool) -> Result<String, Stop> {
+    let idle = |message: &str| {
+        if service {
+            Stop::Idle(message.to_string())
+        } else {
+            Stop::Fail(message.to_string())
+        }
+    };
+    match sock {
+        SwaySock::Missing => Err(idle("SWAYSOCK is not set")),
+        SwaySock::Empty => Err(idle("SWAYSOCK is empty")),
+        SwaySock::NotUtf8 => Err(Stop::Fail("SWAYSOCK is not valid UTF-8".to_string())),
+        SwaySock::Path(path) => Ok(path),
+    }
+}
+
+fn ensure_socket(path: &Path) -> Result<(), Stop> {
+    match fs::metadata(path) {
+        Ok(meta) if meta.file_type().is_socket() => Ok(()),
+        Ok(_) => Err(Stop::Fail(format!(
+            "SWAYSOCK is not a socket: {}",
+            path.display()
+        ))),
+        Err(err) if err.kind() == io::ErrorKind::NotFound => Err(Stop::Fail(format!(
+            "SWAYSOCK path does not exist: {}",
+            path.display()
+        ))),
+        Err(err) => Err(Stop::Fail(format!(
+            "SWAYSOCK path cannot be read: {} ({err})",
+            path.display()
+        ))),
+    }
+}
+
+fn instance_lock() -> Result<Option<File>, Stop> {
+    match env::var_os("XDG_RUNTIME_DIR").filter(|dir| !dir.is_empty()) {
+        Some(dir) => lock_runtime_dir(Path::new(&dir)).map(Some),
+        None => {
+            eprintln!("sway-lang: XDG_RUNTIME_DIR is unset, skipping the lock");
+            Ok(None)
+        }
+    }
+}
+
+fn lock_runtime_dir(dir: &Path) -> Result<File, Stop> {
+    let path = dir.join("sway-lang.lock");
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .mode(0o600)
+        .open(&path)
+        .map_err(|err| Stop::Fail(format!("cannot open {}: {err}", path.display())))?;
+    match lock_exclusive(&file) {
+        Ok(()) => Ok(file),
+        Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
+            Err(Stop::Fail("sway-lang: already running".to_string()))
+        }
+        Err(err) => Err(Stop::Fail(format!("cannot lock {}: {err}", path.display()))),
+    }
+}
+
+const LOCK_EX: i32 = 2;
+const LOCK_NB: i32 = 4;
+
+unsafe extern "C" {
+    fn flock(fd: i32, operation: i32) -> i32;
+}
+
+fn lock_exclusive(file: &File) -> io::Result<()> {
+    loop {
+        // SAFETY: `file` owns this fd. LOCK_EX | LOCK_NB only sets an
+        // advisory lock on that fd and does not dereference a pointer.
+        let rc = unsafe { flock(file.as_raw_fd(), LOCK_EX | LOCK_NB) };
+        if rc == 0 {
+            return Ok(());
+        }
+        let err = io::Error::last_os_error();
+        if err.kind() == io::ErrorKind::Interrupted {
+            continue;
+        }
+        if err.kind() == io::ErrorKind::WouldBlock {
+            return Err(io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                "sway-lang: already running",
+            ));
+        }
+        return Err(err);
+    }
+}
+
+struct LoadedConfig<'a> {
+    file: &'a ConfigFile,
+    fallback_label: &'a str,
+    source_label: &'a str,
 }
 
 /// Record the window that is already focused, without treating it as new.
-/// An empty desktop at startup moves the keyboard to layout 0.
-fn seed(commands: &mut Connection, verbose: bool) -> Result<Memory, String> {
-    let inputs = commands.get_inputs().map_err(|err| err.to_string())?;
-    let active = first_keyboard_layout(&inputs)?;
-    note(verbose, &format!("active layout {active}"));
-    let mut memory = Memory::new(active);
-    let tree = commands.get_tree().map_err(|err| err.to_string())?;
-    let action = if let Some(id) = focused_view_id(&tree) {
-        note(verbose, &format!("focused window {id}"));
-        memory.remember_current(id);
+/// An empty desktop at startup moves the keyboard to the fallback layout.
+fn seed(
+    commands: &mut Connection,
+    verbose: bool,
+    loaded: &LoadedConfig<'_>,
+) -> Result<Memory, Stop> {
+    let inputs = commands
+        .get_inputs()
+        .map_err(|err| Stop::Fail(err.to_string()))?;
+    let keyboard = first_keyboard(&inputs).map_err(Stop::Fail)?;
+    let rules = config::resolve_rules(
+        loaded.file,
+        &keyboard.names,
+        &RuleSource {
+            fallback_label: loaded.fallback_label,
+            apps_label: loaded.source_label,
+        },
+    )
+    .map_err(Stop::Usage)?;
+    note(verbose, &format!("config {}", loaded.source_label));
+    note(verbose, &format!("active layout {}", keyboard.active));
+    note(verbose, &format!("fallback {}", rules.fallback));
+    let mut memory = Memory::with_layouts(keyboard.active, rules.fallback, rules.apps);
+    memory.watch_keyboard(keyboard.identifier);
+    let tree = commands
+        .get_tree()
+        .map_err(|err| Stop::Fail(err.to_string()))?;
+    let action = if let Some(node) = focused_view(&tree) {
+        note(verbose, &format!("focused window {}", node.id));
+        memory.remember_current(node.id);
         Action::None
     } else {
         note(verbose, "no focused window");
@@ -92,23 +353,33 @@ fn seed(commands: &mut Connection, verbose: bool) -> Result<Memory, String> {
     Ok(memory)
 }
 
-/// Index of the first keyboard that reports one.
-///
-/// A seat can list the same layout on a keyboard, its consumer-control
-/// device, and a mouse that Sway also calls a keyboard. They should agree.
-/// If they do not, the first index wins and the mismatch is printed.
-fn first_keyboard_layout(inputs: &[Input]) -> Result<u32, String> {
-    let mut selected = None;
+struct Keyboard {
+    identifier: String,
+    active: u32,
+    names: Vec<String>,
+}
+
+/// Index and identifier of the first keyboard that reports a layout, and the
+/// first non-empty layout-name list. A seat can list the same layout on a
+/// keyboard, its consumer-control device, and a mouse that Sway also calls a
+/// keyboard. The names are often only on one of those devices. Layout events
+/// are kept only for the identifier chosen here.
+fn first_keyboard(inputs: &[Input]) -> Result<Keyboard, String> {
+    let mut chosen: Option<(String, u32)> = None;
+    let mut names = None;
     for input in inputs {
         if input.input_type != "keyboard" {
             continue;
         }
+        if names.is_none() && !input.xkb_layout_names.is_empty() {
+            names = Some(input.xkb_layout_names.clone());
+        }
         let Some(index) = layout_index(input.xkb_active_layout_index) else {
             continue;
         };
-        match selected {
-            None => selected = Some(index),
-            Some(current) if current != index => {
+        match &chosen {
+            None => chosen = Some((input.identifier.clone(), index)),
+            Some((_, current)) if *current != index => {
                 eprintln!(
                     "keyboards disagree on layout index ({current} vs {index}); using {current}"
                 );
@@ -116,7 +387,12 @@ fn first_keyboard_layout(inputs: &[Input]) -> Result<u32, String> {
             Some(_) => {}
         }
     }
-    selected.ok_or_else(|| "no keyboard layout from sway".to_string())
+    let (identifier, active) = chosen.ok_or_else(|| "no keyboard layout from sway".to_string())?;
+    Ok(Keyboard {
+        identifier,
+        active,
+        names: names.unwrap_or_default(),
+    })
 }
 
 /// Sway reports the index as `i32`. A negative value is not a layout.
@@ -124,14 +400,14 @@ fn layout_index(index: Option<i32>) -> Option<u32> {
     index.and_then(|index| u32::try_from(index).ok())
 }
 
-fn focused_view_id(node: &Node) -> Option<i64> {
+fn focused_view(node: &Node) -> Option<&Node> {
     if node.focused && is_view(node) {
-        return Some(node.id);
+        return Some(node);
     }
     node.nodes
         .iter()
         .chain(node.floating_nodes.iter())
-        .find_map(focused_view_id)
+        .find_map(focused_view)
 }
 
 /// A view has an app id (Wayland), an X11 window, or a pid.
@@ -142,6 +418,24 @@ fn is_view(node: &Node) -> bool {
     is_container && (node.app_id.is_some() || node.window.is_some() || node.pid.is_some())
 }
 
+/// Wayland `app_id` when it is set. Otherwise the X11 window class.
+fn app_name(node: &Node) -> Option<String> {
+    let class = node
+        .window_properties
+        .as_ref()
+        .and_then(|props| props.class.as_deref());
+    app_key(node.app_id.as_deref(), class)
+}
+
+fn app_key(app_id: Option<&str>, class: Option<&str>) -> Option<String> {
+    if let Some(app_id) = app_id.filter(|app_id| !app_id.is_empty()) {
+        return Some(app_id.to_string());
+    }
+    class
+        .filter(|class| !class.is_empty())
+        .map(ToString::to_string)
+}
+
 /// Workspace focus and the last window closing both need a fresh tree.
 /// The workspace event does not include the views on that workspace.
 fn react(
@@ -149,7 +443,7 @@ fn react(
     memory: &mut Memory,
     event: &Event,
     verbose: bool,
-) -> Result<Action, String> {
+) -> Result<Action, Stop> {
     match event {
         Event::Workspace(workspace) if workspace.change == WorkspaceChange::Focus => {
             sync_focus(commands, memory, verbose)
@@ -167,16 +461,21 @@ fn react(
     }
 }
 
-/// Empty workspace, or the last window closed: default layout.
+/// Empty workspace, or the last window closed: fallback layout.
 /// A workspace that already has a focused window keeps that window's layout.
 fn sync_focus(
     commands: &mut Connection,
     memory: &mut Memory,
     verbose: bool,
-) -> Result<Action, String> {
-    let tree = commands.get_tree().map_err(|err| err.to_string())?;
-    let happening = match focused_view_id(&tree) {
-        Some(id) => Happening::Focus { id },
+) -> Result<Action, Stop> {
+    let tree = commands
+        .get_tree()
+        .map_err(|err| Stop::Fail(err.to_string()))?;
+    let happening = match focused_view(&tree) {
+        Some(node) => Happening::Focus {
+            id: node.id,
+            app: app_name(node),
+        },
         None => Happening::Unfocus,
     };
     note(verbose, &format!("{happening:?}"));
@@ -195,17 +494,22 @@ fn apply_window(memory: &mut Memory, change: WindowChange, node: &Node, verbose:
     if !is_view(node) || change != WindowChange::Focus {
         return Action::None;
     }
-    let happening = Happening::Focus { id: node.id };
+    let happening = Happening::Focus {
+        id: node.id,
+        app: app_name(node),
+    };
     note(verbose, &format!("{happening:?}"));
     memory.apply(happening)
 }
 
 fn apply_input(memory: &mut Memory, change: InputChange, input: &Input, verbose: bool) -> Action {
-    if input.input_type != "keyboard" {
+    if input.input_type != "keyboard" || input.identifier != memory.keyboard_id() {
         return Action::None;
     }
     let happening = match change {
-        InputChange::XkbKeymap => Happening::KeymapReset,
+        InputChange::XkbKeymap => Happening::KeymapReset {
+            index: layout_index(input.xkb_active_layout_index),
+        },
         InputChange::XkbLayout => {
             let Some(index) = layout_index(input.xkb_active_layout_index) else {
                 return Action::None;
@@ -223,7 +527,7 @@ fn switch_if_needed(
     memory: &mut Memory,
     action: Action,
     verbose: bool,
-) -> Result<(), String> {
+) -> Result<(), Stop> {
     let Action::SwitchTo(index) = action else {
         return Ok(());
     };
@@ -235,11 +539,11 @@ fn switch_if_needed(
 }
 
 /// `type:keyboard` matches the sway input block. `input *` also hits pointers.
-fn switch_layout(commands: &mut Connection, index: u32) -> Result<bool, String> {
+fn switch_layout(commands: &mut Connection, index: u32) -> Result<bool, Stop> {
     let command = format!("input type:keyboard xkb_switch_layout {index}");
     let outcomes = commands
         .run_command(command)
-        .map_err(|err| err.to_string())?;
+        .map_err(|err| Stop::Fail(err.to_string()))?;
     let mut accepted = true;
     for outcome in outcomes {
         if let Err(err) = outcome {
@@ -253,5 +557,305 @@ fn switch_layout(commands: &mut Connection, index: u32) -> Result<bool, String> 
 fn note(verbose: bool, message: &str) {
     if verbose {
         eprintln!("{message}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn help_lists_the_flags() {
+        for flag in [
+            "--help",
+            "-h",
+            "--version",
+            "--verbose",
+            "--config",
+            "--default",
+        ] {
+            assert!(HELP.contains(flag), "{flag}");
+        }
+        assert!(matches!(
+            parse_arg_list(["sway-lang", "-h"]).unwrap(),
+            Parsed::Help
+        ));
+        assert!(matches!(
+            parse_arg_list(["sway-lang", "--help"]).unwrap(),
+            Parsed::Help
+        ));
+        assert!(matches!(
+            parse_arg_list(["sway-lang", "--version"]).unwrap(),
+            Parsed::Version
+        ));
+    }
+
+    #[test]
+    fn unknown_flag_and_missing_value_are_errors() {
+        let unknown = parse_arg_list(["sway-lang", "--nope"]).unwrap_err();
+        assert!(unknown.contains("unknown argument: --nope"), "{unknown}");
+        let config = parse_arg_list(["sway-lang", "--config"]).unwrap_err();
+        assert!(config.contains("--config needs a value"), "{config}");
+        let default = parse_arg_list(["sway-lang", "--default"]).unwrap_err();
+        assert!(default.contains("--default needs a value"), "{default}");
+    }
+
+    #[test]
+    fn config_and_default_flags_are_kept() {
+        let Parsed::Run(options) = parse_arg_list([
+            "sway-lang",
+            "--verbose",
+            "--config",
+            "dir/config.toml",
+            "--default",
+            "ua",
+        ])
+        .unwrap() else {
+            panic!("expected run options");
+        };
+        assert!(options.verbose);
+        assert_eq!(options.config.unwrap(), PathBuf::from("dir/config.toml"));
+        assert_eq!(options.default_layout.as_deref(), Some("ua"));
+    }
+
+    #[test]
+    fn app_id_wins_and_empty_falls_through_to_class() {
+        assert_eq!(
+            app_key(Some("Telegram"), Some("telegram")),
+            Some("Telegram".to_string())
+        );
+        assert_eq!(app_key(Some(""), Some("Code")), Some("Code".to_string()));
+        assert_eq!(app_key(None, Some("Code")), Some("Code".to_string()));
+        assert_eq!(app_key(None, None), None);
+        assert_eq!(app_key(Some(""), Some("")), None);
+    }
+
+    #[test]
+    fn is_view_needs_a_container_and_an_app_window_or_pid() {
+        assert!(is_view(&node("con", true, false, false)));
+        assert!(is_view(&node("con", false, true, false)));
+        assert!(is_view(&node("con", false, false, true)));
+        assert!(is_view(&node("floating_con", false, false, true)));
+        assert!(!is_view(&node("con", false, false, false)));
+        assert!(!is_view(&node("workspace", true, true, true)));
+        assert!(!is_view(&node("output", false, false, true)));
+    }
+
+    #[test]
+    fn two_keyboards_that_disagree_use_the_first() {
+        let inputs = vec![
+            device("pointer", "mouse", None, &[]),
+            device("keyboard", "kb-a", Some(0), &["English (US)", "Ukrainian"]),
+            device("keyboard", "kb-b", Some(1), &["Ukrainian"]),
+        ];
+
+        let keyboard = first_keyboard(&inputs).unwrap();
+
+        assert_eq!(keyboard.identifier, "kb-a");
+        assert_eq!(keyboard.active, 0);
+        assert_eq!(
+            keyboard.names,
+            vec!["English (US)".to_string(), "Ukrainian".to_string()]
+        );
+    }
+
+    #[test]
+    fn layout_event_from_another_keyboard_is_ignored() {
+        let mut memory = Memory::with_layouts(0, 0, std::collections::HashMap::new());
+        memory.watch_keyboard("kb-a".to_string());
+        memory.remember_current(1);
+
+        let other = device("keyboard", "kb-b", Some(1), &[]);
+        assert_eq!(
+            apply_input(&mut memory, InputChange::XkbLayout, &other, false),
+            Action::None
+        );
+        assert_eq!(
+            memory.apply(Happening::Focus { id: 2, app: None }),
+            Action::None
+        );
+
+        let own = device("keyboard", "kb-a", Some(1), &[]);
+        apply_input(&mut memory, InputChange::XkbLayout, &own, false);
+        assert_eq!(
+            memory.apply(Happening::Focus { id: 1, app: None }),
+            Action::SwitchTo(0)
+        );
+    }
+
+    #[test]
+    fn keymap_event_stores_the_index_it_carries() {
+        let mut memory = Memory::with_layouts(1, 0, std::collections::HashMap::new());
+        memory.watch_keyboard("kb-a".to_string());
+        memory.remember_current(4);
+
+        let input = device("keyboard", "kb-a", Some(0), &[]);
+        apply_input(&mut memory, InputChange::XkbKeymap, &input, false);
+
+        assert_eq!(
+            memory.apply(Happening::Focus { id: 5, app: None }),
+            Action::None
+        );
+    }
+
+    #[test]
+    fn empty_swaysock_is_an_error_at_the_cli_and_idle_under_systemd() {
+        assert_eq!(
+            fail_text(classify_swaysock(SwaySock::Empty, false)),
+            "SWAYSOCK is empty"
+        );
+        assert_eq!(
+            idle_text(classify_swaysock(SwaySock::Empty, true)),
+            "SWAYSOCK is empty"
+        );
+        assert_eq!(
+            fail_text(classify_swaysock(SwaySock::Missing, false)),
+            "SWAYSOCK is not set"
+        );
+        assert_eq!(
+            idle_text(classify_swaysock(SwaySock::Missing, true)),
+            "SWAYSOCK is not set"
+        );
+        assert_eq!(
+            fail_text(classify_swaysock(SwaySock::NotUtf8, true)),
+            "SWAYSOCK is not valid UTF-8"
+        );
+        assert_eq!(
+            classify_swaysock(SwaySock::Path("/run/user/1000/sway-ipc.sock".into()), false)
+                .unwrap(),
+            "/run/user/1000/sway-ipc.sock"
+        );
+    }
+
+    #[test]
+    fn socket_path_must_exist_and_be_a_socket() {
+        let dir = scratch("socket");
+        let missing = dir.join("missing");
+        assert!(
+            fail_text(ensure_socket(&missing)).contains("does not exist"),
+            "{}",
+            fail_text(ensure_socket(&missing))
+        );
+
+        let file = dir.join("file");
+        fs::write(&file, b"nope").unwrap();
+        assert!(
+            fail_text(ensure_socket(&file)).contains("not a socket"),
+            "{}",
+            fail_text(ensure_socket(&file))
+        );
+
+        let sock = dir.join("sock");
+        let listener = std::os::unix::net::UnixListener::bind(&sock).unwrap();
+        assert!(ensure_socket(&sock).is_ok());
+        drop(listener);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn second_lock_reports_already_running() {
+        let dir = scratch("lock");
+        let first = lock_runtime_dir(&dir).unwrap();
+        assert_eq!(
+            fail_text(lock_runtime_dir(&dir)),
+            "sway-lang: already running"
+        );
+        drop(first);
+        assert!(lock_runtime_dir(&dir).is_ok());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    fn scratch(name: &str) -> PathBuf {
+        let path = std::env::temp_dir().join(format!("sway-lang-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&path);
+        fs::create_dir_all(&path).unwrap();
+        path
+    }
+
+    fn fail_text(stopped: Result<impl Sized, Stop>) -> String {
+        match stopped {
+            Err(Stop::Fail(message)) => message,
+            Err(other) => panic!("expected fail, got {other:?}"),
+            Ok(_) => panic!("expected fail"),
+        }
+    }
+
+    fn idle_text(stopped: Result<impl Sized, Stop>) -> String {
+        match stopped {
+            Err(Stop::Idle(message)) => message,
+            Err(other) => panic!("expected idle, got {other:?}"),
+            Ok(_) => panic!("expected idle"),
+        }
+    }
+
+    fn node(node_type: &str, app_id: bool, window: bool, pid: bool) -> Node {
+        let app_id = if app_id { "\"app\"" } else { "null" };
+        let window = if window { "10" } else { "null" };
+        let pid = if pid { "20" } else { "null" };
+        let text = format!(
+            r#"{{
+                "id": 1,
+                "name": "n",
+                "type": "{node_type}",
+                "border": "none",
+                "current_border_width": 0,
+                "layout": "none",
+                "orientation": "none",
+                "percent": null,
+                "rect": {{"x": 0, "y": 0, "width": 0, "height": 0}},
+                "window_rect": {{"x": 0, "y": 0, "width": 0, "height": 0}},
+                "deco_rect": {{"x": 0, "y": 0, "width": 0, "height": 0}},
+                "geometry": {{"x": 0, "y": 0, "width": 0, "height": 0}},
+                "urgent": false,
+                "focused": false,
+                "focus": [],
+                "floating": null,
+                "nodes": [],
+                "floating_nodes": [],
+                "sticky": false,
+                "representation": null,
+                "fullscreen_mode": null,
+                "scratchpad_state": null,
+                "app_id": {app_id},
+                "pid": {pid},
+                "window": {window},
+                "num": null,
+                "window_properties": null,
+                "marks": [],
+                "inhibit_idle": null,
+                "idle_inhibitors": null,
+                "sandbox_engine": null,
+                "sandbox_app_id": null,
+                "sandbox_instance_id": null,
+                "tag": null,
+                "shell": null,
+                "foreign_toplevel_identifier": null,
+                "visible": null,
+                "output": null
+            }}"#
+        );
+        serde_json::from_str(&text).unwrap_or_else(|err| panic!("{err}: {text}"))
+    }
+
+    fn device(kind: &str, identifier: &str, index: Option<i32>, names: &[&str]) -> Input {
+        let names = serde_json::to_string(names).unwrap();
+        let index = index
+            .map(|index| index.to_string())
+            .unwrap_or_else(|| "null".to_string());
+        let text = format!(
+            r#"{{
+                "identifier": {identifier:?},
+                "name": {identifier:?},
+                "type": "{kind}",
+                "xkb_active_layout_name": null,
+                "xkb_layout_names": {names},
+                "xkb_active_layout_index": {index},
+                "scroll_factor": 1.0,
+                "libinput": null,
+                "vendor": null,
+                "product": null
+            }}"#
+        );
+        serde_json::from_str(&text).unwrap_or_else(|err| panic!("{err}: {text}"))
     }
 }

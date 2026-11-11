@@ -30,6 +30,8 @@ jobs:
       - name: install the arm linker
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: sudo apt-get update && sudo apt-get install --yes gcc-aarch64-linux-gnu
+      - name: test
+        run: cargo test --locked
       - name: build
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
@@ -64,15 +66,17 @@ jobs:
           cp dist/sway-lang-linux-amd64/sway-lang-linux-amd64 "$stage/"
           cp dist/sway-lang-linux-arm64/sway-lang-linux-arm64 "$stage/"
           cp install.sh "$stage/"
+          cp man/sway-lang.1 "$stage/"
           (
             cd "$stage"
-            sha256sum sway-lang-linux-amd64 sway-lang-linux-arm64 > SHA256SUMS
+            sha256sum sway-lang-linux-amd64 sway-lang-linux-arm64 sway-lang.1 > SHA256SUMS
           )
           gh release create "${GITHUB_REF_NAME}" \
             --repo "${GITHUB_REPOSITORY}" \
             --title "${GITHUB_REF_NAME}" \
-            --notes "Linux binaries for amd64 and arm64. install.sh checks SHA256SUMS, copies the binary to ~/.local/bin/sway-lang, and writes the systemd user unit. The unit is not enabled." \
+            --notes "Linux binaries for amd64 and arm64. install.sh checks SHA256SUMS, copies the binary to ~/.local/bin/sway-lang, writes the systemd user unit, and installs the man page. The unit is not enabled." \
             "$stage/sway-lang-linux-amd64" \
             "$stage/sway-lang-linux-arm64" \
             "$stage/SHA256SUMS" \
-            "$stage/install.sh"
+            "$stage/install.sh" \
+            "$stage/sway-lang.1"
